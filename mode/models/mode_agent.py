@@ -264,6 +264,7 @@ class MoDEAgent(pl.LightningModule):
         except Exception as e:
             raise RuntimeError(f"Failed to load weights from {ckpt_path}: {str(e)}")
 
+    # also further train the resnet weights? -- FilM for goal conditioned obersevtion
     def configure_optimizers(self):
         """
         Initialize optimizers and learning rate schedulers based on model configuration.

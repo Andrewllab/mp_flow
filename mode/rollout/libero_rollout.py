@@ -436,11 +436,11 @@ if __name__ == "__main__":
 
     from mode.evaluation.utils import load_pl_module_from_checkpoint
 
-    transform_cfg = omegaconf.OmegaConf.load("/home/yagmurlu/code/MoDE_Calvin/conf/datamodule/transforms/libero_transforms.yaml")
+    transform_cfg = omegaconf.OmegaConf.load("/home/weiran/MoDE_Calvin/conf/datamodule/transforms/libero_transforms.yaml")
     transforms = transform_cfg['val']
 
     model = load_pl_module_from_checkpoint(
-        "/home/yagmurlu/code/MoDE_Calvin/logs/runs/2024-08-03/13-07-00",
+        "/home/weiran/MoDE_Calvin/logs/runs/2024-08-03/13-07-00",
         0
     ).to('cuda:0')
 
@@ -463,6 +463,6 @@ if __name__ == "__main__":
     )
 
     rollout.transforms = hydra.utils.instantiate(transforms)
-    rollout.evaluate_policy(model, store_video="/home/yagmurlu/code/MoDE_Calvin/zzT-2")
+    rollout.evaluate_policy(model, store_video="/home/weiran/MoDE_Calvin/zzT-2")
 
     print('end')

@@ -5,7 +5,7 @@ defaults:
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
-root_data_dir: /home/yagmurlu/code/MoDE_Calvin/dataset/task_ABC_D
+root_data_dir: /home/weiran/MoDE_Calvin/dataset/task_ABC_D
 lang_folder: lang_clip_resnet50
 vis_clip_model_name: ViT-B/16
 clip_lang_model_name: ViT-B/32
@@ -51,7 +51,7 @@ logger:
   group: mode
   log_model: false
   project: ${libero_benchmark}
-  entity: omeryagmurlu
+  entity: mp_flow
   id: ???
 
 

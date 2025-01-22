@@ -11,7 +11,9 @@ import torch.distributed as dist
 from torchvision.transforms.functional import resize
 import wandb
 import wandb.util
-from moviepy.editor import ImageSequenceClip
+# from moviepy.editor import ImageSequenceClip
+# in the version of moviepy I installed, no editor package, Im...Clip is directly exposed
+from moviepy import ImageSequenceClip
 
 from mode.utils.utils import add_text
 
@@ -236,8 +238,8 @@ class RolloutVideo:
                 video = video.unsqueeze(0)
             video = np.clip(video.numpy() * 255, 0, 255).astype(np.uint8)
 
-            mpy = wandb.util.get_module(
-                "moviepy.editor",
+            mpy = wandb.util.get_module("moviepy",
+                # "moviepy.editor",
                 required='wandb.Video requires moviepy and imageio when passing raw data.  Install with "pip install moviepy imageio"',
             )
             tensor = self._prepare_video(video)

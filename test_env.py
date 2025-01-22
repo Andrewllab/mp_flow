@@ -4,6 +4,14 @@ from hydra import compose, initialize
 from mode.evaluation.multistep_sequences import get_sequences
 from mode.evaluation.utils import get_env_state_for_initial_condition
 
+# unset DISPLAY env-variable to use EGL for headless? rendering
+import os
+if "DISPLAY" in os.environ:
+    del os.environ["DISPLAY"]
+
+import sys
+sys.path.insert(0, "/home/weiran/MoDE_Diffusion_Policy/calvin_env")
+
 display = print
 
 with initialize(config_path="conf"):
@@ -36,13 +44,15 @@ robot_obs, scene_obs = get_env_state_for_initial_condition(initial_state)
 env.reset(robot_obs=robot_obs, scene_obs=scene_obs)
 
 obs = env.get_obs()
-obs_raw = env.last_raw_obs
+# obs_raw = env.last_raw_obs  # 'PlayTableSimEnv' object has no attribute 'last_raw_obs'
 
 start_info = env.get_info()
 
 display(hasher(str(start_info)))
 # display(teha(obs_raw))
-display(hasher(str(teha(obs_raw))))
+# display(hasher(str(teha(obs_raw))))
+display(teha(obs))
+display(hasher(str(teha(obs))))
 
 goal = {}
 goal['lang_text'] = "langinfo"
