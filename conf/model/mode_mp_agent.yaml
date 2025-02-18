@@ -1,9 +1,9 @@
-_target_: mode.models.mode_agent.MoDEAgent
+_target_: mode.models.mode_mp_agent.MoDEMPAgent
 _recursive_: false
 multistep: ${multistep}
 use_lr_scheduler: True
-entropy_gamma: 0.01 
-router_z_delta: 0.00 
+entropy_gamma: 0.01
+router_z_delta: 0.00
 use_proprio: False
 seed: ${seed}
 sampler_type: 'ddim'
@@ -59,7 +59,9 @@ model:
     n_layers: 4
     goal_seq_len: 1
     obs_seq_len: ${obs_seq_len}
-    action_seq_len: ${act_seq_len}
+#    action_seq_len: ${act_seq_len}
+#    action_seq_len: ${num_basis}
+    action_seq_len: 10
     embed_pdrob: 0
     goal_drop: 0.1
     attn_pdrop: 0.3
@@ -67,7 +69,7 @@ model:
     n_heads: 4
     device: ${device}
     linear_output: True
-    cond_router: True 
+    cond_router: True
     num_experts: 4
     top_k: 2
     router_normalize: True
@@ -82,3 +84,16 @@ language_goal:
   _target_:  mode.models.networks.clip_lang_encoder.LangClip
   _recursive_: false
   model_name: ${clip_lang_model_name}
+
+
+# added for mp
+mp:
+  _target_: mode.models.mps.bspline.BSpline
+  _recursive_: false
+  num_dof: ${datamodule.action_space}
+  num_basis: 10
+  degree_p: 4
+  device: cuda
+  seq_len: ${act_seq_len}
+  frequency: 30
+  weights_scale: 1.2

@@ -1,0 +1,71 @@
+
+import torch
+from addict import Dict
+
+from mp_pytorch.mp import MPFactory
+from mp_pytorch.util import add_expand_dim
+
+
+class BSpline:
+
+    def __init__(self, num_dof, num_basis=10, degree_p=4, dtype=torch.float32,
+                 device="cpu", seq_len=60, frequency=30, **kwargs):
+
+        self.mp_config = Dict()
+        self.mp_config.mp_type = "uni_bspline"
+        self.mp_config.dtype = dtype
+        self.mp_config.device = device
+        self.mp_config.num_dof = num_dof
+        self.mp_config.tau = seq_len / frequency
+        self.mp_config.mp_args.num_basis = num_basis
+        self.mp_config.mp_args.degree_p = degree_p
+        self.mp_config.mp_args.init_condition_order = kwargs.get("init_condition_order", 0)
+        self.mp_config.mp_args.end_condition_order = kwargs.get("end_condition_order", 0)
+        self.mp_config.mp_args.weights_scale = kwargs.get("weights_scale", 1)
+
+        self.mp = MPFactory.init_mp(**self.mp_config)
+
+        self.seq_len = seq_len
+        self.frequency = frequency
+        self.duration = self.mp_config.tau
+        self.times = torch.linspace(0, self.duration, seq_len, dtype=dtype,
+                                    device=device)
+
+    def traj_to_params(self, action_sequences):
+
+        # Shape of times:
+        # [*add_dim, num_times]
+        #
+        # Shape of trajs:
+        # [*add_dim, num_times, num_dof]
+        #
+        # Shape of learned params
+        # [*add_dim, num_dof * num_basis_g]
+        add_dim = list(action_sequences.shape[:-2])
+        times = add_expand_dim(self.times, list(range(len(add_dim))), add_dim)
+
+        # dictionary
+        para = self.mp.learn_mp_params_from_trajs(times, action_sequences)
+        # Reshape params
+        # [*add_dim, num_dof * num_basis] -> [*add_dim, num_dof, num_basis]
+        params = para["params"].reshape(*self.mp.add_dim, self.mp.num_dof, -1)
+        params = torch.einsum('...ji->...ij', params)
+        para["params"] = params
+
+        # return para["params"]
+        return para
+
+    def get_traj(self, para):
+
+        params = torch.einsum('...ji->...ij', para["params"])
+        add_dim = list(params.shape[:-2])
+        params = params.reshape(*add_dim, -1)
+        para["params"] = params
+        # add_dim = list(para["params"].shape[:-1])
+        times = add_expand_dim(self.times, list(range(len(add_dim))), add_dim)
+        self.mp.update_inputs(times, **para)
+
+        traj = self.mp.get_traj_pos()
+
+        return traj
+

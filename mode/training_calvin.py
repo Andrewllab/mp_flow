@@ -12,6 +12,14 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.utilities import rank_zero_only
 
 
+# unset DISPLAY env-variable to use EGL for headless? rendering
+import os
+if "DISPLAY" in os.environ:
+    del os.environ["DISPLAY"]
+
+sys.path.insert(0, "/home/weiran/mp_flow/calvin_env")
+
+
 # This is for using the locally installed repo clone when using slurm
 sys.path.insert(0, Path(__file__).absolute().parents[1].as_posix())
 import mode.models.mode_agent as models_m

@@ -10,13 +10,13 @@ eval_cfg_overwrite:
   model:
     num_sampling_steps: 5
 
-train_folder: /home/weiran/MoDE_Diffusion_Policy/pretrained/
+train_folder: /home/weiran/mp_flow/pretrained/
 checkpoint: d_ema=0
 device: 0
 
 
-log_dir: /home/weiran/MoDE_Diffusion_Policy/outputs/d_ema
-dataset_path: /home/weiran/MoDE_Diffusion_Policy/dataset/calvin_debug_dataset
+log_dir: /home/weiran/mp_flow/outputs/d_ema
+dataset_path: /home/weiran/mp_flow/dataset/calvin_debug_dataset
 num_videos: 30
 debug: False
 

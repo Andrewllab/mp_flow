@@ -1,12 +1,13 @@
 defaults:
   - callbacks: calvin
   - datamodule: calvin
-  - model: mode_agent
+#  - model: mode_agent
+  - model: mode_mp_agent
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
 
-root_data_dir: /home/weiran/MoDE_Diffusion_Policy/dataset/calvin_debug_dataset
+root_data_dir: /home/weiran/mp_flow/dataset/calvin_debug_dataset
 #lang_folder: lang_clip_resnet50
 lang_folder: lang_annotations
 vis_clip_model_name: ViT-B/16
@@ -17,7 +18,7 @@ slurm: false
 seed: 242
 device: 'cuda'
 #batch_size: 64 # 38 # 128
-batch_size: 32 # 38 # 128
+batch_size: 1 # 38 # 128
 #devices: 4
 devices: 1
 act_dim: 7
@@ -25,19 +26,22 @@ proprio_dims: 7
 obs_dim: 512
 goal_dim: 512
 obs_seq_len: 1
-act_seq_len: 10
-multistep: 10 #${act_seq_len}
+#act_seq_len: 10
+act_seq_len: 60
+#multistep: 10 #${act_seq_len}
+multistep: ${act_seq_len}
 p_last_state: 0
 gen_img_res: 112
 max_epochs: 20
 rollout_lh_skip_epochs: 9
 num_workers: 12
-benchmark_name: calvin_abc # calvin_abcd
+benchmark_name: calvin_d # calvin_abcd
 use_extracted_rel_actions: true
 
 trainer:
   devices: ${devices}
-  precision: bf16
+#  precision: bf16
+  precision: 32
   max_epochs: ${max_epochs}
   sync_batchnorm: True
   accelerator: gpu
@@ -54,7 +58,7 @@ logger:
   group: mode_orginal
   log_model: false
 #  project: ${benchmark_name}
-  project: mode_debug
+  project: mode_mp_debug
   entity: mp_flow
 #  id: ???
   id: 000

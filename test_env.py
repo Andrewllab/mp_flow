@@ -10,7 +10,7 @@ if "DISPLAY" in os.environ:
     del os.environ["DISPLAY"]
 
 import sys
-sys.path.insert(0, "/home/weiran/MoDE_Diffusion_Policy/calvin_env")
+sys.path.insert(0, "/home/weiran/mp_flow/calvin_env")
 
 display = print
 

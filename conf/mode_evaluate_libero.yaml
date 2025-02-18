@@ -6,12 +6,12 @@ eval_cfg_overwrite:
   model:
     num_sampling_steps: 10
 
-train_folder: /home/weiran/MoDE_Diffusion_Policy/pretrained/
+train_folder: /home/weiran/mp_flow/pretrained/
 checkpoint: libero_90=0
 device: 0
 
 
-log_dir: /home/weiran/MoDE_Diffusion_Policy/outputs/libero_90_test
+log_dir: /home/weiran/mp_flow/outputs/libero_90_test
 dataset_path: /home/weiran/mdt_policy/dataset/calvin_debug_dataset
 num_videos: 30
 debug: False

@@ -6,7 +6,7 @@ eval_cfg_overwrite:
   model:
     num_sampling_steps: 10
 
-train_folder: /home/i53/student/yagmurlu/code/MoDE_Diffusion_Policy/pretrained/
+train_folder: /home/i53/student/yagmurlu/code/mp_flow/pretrained/
 checkpoint: unknown=0
 device: 0
 dataset_path: /home/i53/student/yagmurlu/code/manten/calvin/dataset/calvin_debug_dataset
