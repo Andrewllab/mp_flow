@@ -61,7 +61,7 @@ model:
     obs_seq_len: ${obs_seq_len}
 #    action_seq_len: ${act_seq_len}
 #    action_seq_len: ${num_basis}
-    action_seq_len: 10
+    action_seq_len: 15
     embed_pdrob: 0
     goal_drop: 0.1
     attn_pdrop: 0.3
@@ -88,12 +88,13 @@ language_goal:
 
 # added for mp
 mp:
-  _target_: mode.models.mps.bspline.BSpline
+  _target_: mode.models.mps.bspline.BSplineD
   _recursive_: false
   num_dof: ${datamodule.action_space}
-  num_basis: 10
-  degree_p: 4
+  num_basis: 15
+  degree_p: 5
   device: cuda
   seq_len: ${act_seq_len}
   frequency: 30
   weights_scale: 1.2
+  digit_dims: 1
