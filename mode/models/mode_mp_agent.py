@@ -139,6 +139,7 @@ class MoDEMPAgent(pl.LightningModule):
         self.lang_buffer = AdvancedLangEmbeddingBuffer(self.language_goal,
                                                        10000)
         # movement primitives
+        mp["device"] = str(self.model.inner_model.device)
         self.mp = hydra.utils.instantiate(mp)
 
     def load_pretrained_parameters(self, ckpt_path, strict: bool = False):
@@ -509,7 +510,8 @@ class MoDEMPAgent(pl.LightningModule):
         trajs_loss = torch.nn.functional.mse_loss(trajs_recon, actions)
 
         self._log_validation_metrics(pred_loss)
-        self._log_validation_metrics(trajs_loss)
+        self.log(f"val_act/{self.modality_scope}_trajr_loss_pp", trajs_loss,
+                 sync_dist=True)
 
         output[f"idx_{self.modality_scope}"] = dataset_batch["idx"]
         output["validation_loss"] = pred_loss
@@ -682,6 +684,7 @@ class MoDEMPAgent(pl.LightningModule):
         act_seq = self.mp.get_traj(para)
 
         return act_seq
+        # return para, act_seq  # for debug
 
     def step(self, obs, goal):
         """
@@ -857,7 +860,7 @@ class MoDEMPAgent(pl.LightningModule):
         # x = torch.randn((len(latent_goal), self.act_window_size, 7),
         #                 device=self.device) * self.sigma_max
         x = torch.randn((len(latent_goal), self.mp.mp_config.mp_args.num_basis,
-                         self.mp.mp_config.num_dof),
+                         self.mp.num_dof),
                         device=self.device) * self.sigma_max
 
         actions = self.sample_loop(sigmas, x, input_state, latent_goal,

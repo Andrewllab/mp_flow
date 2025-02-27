@@ -11,6 +11,7 @@ class BSpline:
     def __init__(self, num_dof, num_basis=10, degree_p=4, dtype=torch.float32,
                  device="cpu", seq_len=60, frequency=30, **kwargs):
 
+        self.num_dof = num_dof
         self.mp_config = Dict()
         self.mp_config.mp_type = "uni_bspline"
         self.mp_config.dtype = dtype
@@ -77,7 +78,7 @@ class BSplineD(BSpline):
         super(BSplineD, self).__init__(num_dof=num_dof-digit_dims,
                                        num_basis=num_basis, degree_p=degree_p, dtype=dtype,
                                        device=device, seq_len=seq_len, frequency=frequency, **kwargs)
-
+        self.num_dof = num_dof
         self.digit_dims = digit_dims
         self.mpd_config = Dict()
         self.mpd_config.mp_type = "uni_bspline"
