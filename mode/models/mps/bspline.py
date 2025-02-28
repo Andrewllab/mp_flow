@@ -1,9 +1,18 @@
+from functools import wraps
 
 import torch
 from addict import Dict
 
 from mp_pytorch.mp import MPFactory
 from mp_pytorch.util import add_expand_dim
+
+
+def autocast_float32(fn):
+    @wraps(fn)
+    def wrapped(*args, **kwargs):
+        with torch.cuda.amp.autocast(dtype=torch.float32):
+            return fn(*args, **kwargs)
+    return wrapped
 
 
 class BSpline:
@@ -32,6 +41,7 @@ class BSpline:
         self.times = torch.linspace(0, self.duration, seq_len, dtype=dtype,
                                     device=device)
 
+    @autocast_float32
     def traj_to_params(self, action_sequences):
 
         # Shape of times:
@@ -91,6 +101,7 @@ class BSplineD(BSpline):
 
         self.mpd = MPFactory.init_mp(**self.mpd_config)
 
+    @autocast_float32
     def traj_to_params(self, action_sequences):
 
         # Shape of times:
