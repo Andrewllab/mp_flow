@@ -15,10 +15,11 @@ def autocast_float32(fn):
     return wrapped
 
 
-class BSpline:
+class BSpline(torch.nn.Module):
 
     def __init__(self, num_dof, num_basis=10, degree_p=4, dtype=torch.float32,
                  device="cpu", seq_len=60, frequency=30, **kwargs):
+        super().__init__()
 
         self.num_dof = num_dof
         self.mp_config = Dict()
@@ -38,8 +39,17 @@ class BSpline:
         self.seq_len = seq_len
         self.frequency = frequency
         self.duration = self.mp_config.tau
-        self.times = torch.linspace(0, self.duration, seq_len, dtype=dtype,
-                                    device=device)
+        times = torch.linspace(0, self.duration, seq_len, dtype=self.dtype,
+                                    device=self.device)
+        self.register_buffer("times", times, persistent=False)
+
+    @property
+    def device(self):
+        return self.mp.device
+
+    @property
+    def dtype(self):
+        return self.mp.dtype
 
     @autocast_float32
     def traj_to_params(self, action_sequences):
