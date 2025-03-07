@@ -24,6 +24,7 @@ from mode.models.networks.modedit import NoiseBlockMoE
 from mode.utils.lang_buffer import AdvancedLangEmbeddingBuffer
 
 from mode.models.mps.bspline import BSpline
+# from mode.utils.utils import timeit
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +141,7 @@ class MoDEMPAgent(pl.LightningModule):
                                                        10000)
         # movement primitives
         mp["device"] = str(self.model.inner_model.device)
+        mp["device"] = "cuda"
         self.mp = hydra.utils.instantiate(mp)
 
     def load_pretrained_parameters(self, ckpt_path, strict: bool = False):
@@ -501,7 +503,8 @@ class MoDEMPAgent(pl.LightningModule):
 
         # mse_loss in trajectory level and parameter level
         actions = dataset_batch["actions"].to(self.device)
-        para = self.mp.traj_to_params(actions)
+        update_bounds = self.current_epoch == 0
+        para = self.mp.traj_to_params(actions, update_bounds=update_bounds)
         params = para["params"]
         # pred_loss = torch.nn.functional.mse_loss(action_pred, actions)
         pred_loss = torch.nn.functional.mse_loss(params_pred, params)
@@ -643,6 +646,7 @@ class MoDEMPAgent(pl.LightningModule):
         self.latent_goal = None
         self.rollout_step_counter = 0
 
+    # @timeit
     def forward(self, obs, goal):
         """
         Method for doing inference with the model.
@@ -686,6 +690,7 @@ class MoDEMPAgent(pl.LightningModule):
         return act_seq
         # return para, act_seq  # for debug
 
+    # @timeit
     def step(self, obs, goal):
         """
         Do one step of inference with the model. THis method handles the action chunking case.
@@ -745,7 +750,10 @@ class MoDEMPAgent(pl.LightningModule):
         Computes the score matching loss given the perceptual embedding, latent goal, and desired actions.
         """
 
-        param = self.mp.traj_to_params(actions)
+        # Shape of trajs:
+        # [*add_dim, num_times, num_dof]
+
+        param = self.mp.traj_to_params(actions, update_bounds=True)
         params = param["params"]
 
         self.model.train()
@@ -832,6 +840,7 @@ class MoDEMPAgent(pl.LightningModule):
         else:
             raise ValueError('Unknown sample density type')
 
+    # @timeit
     def denoise_actions(  # type: ignore
             self,
             latent_plan: torch.Tensor,

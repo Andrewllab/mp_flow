@@ -5,6 +5,7 @@ from addict import Dict
 
 from mp_pytorch.mp import MPFactory
 from mp_pytorch.util import add_expand_dim
+# from mode.utils.utils import timeit
 
 
 def autocast_float32(fn):
@@ -13,6 +14,27 @@ def autocast_float32(fn):
         with torch.cuda.amp.autocast(dtype=torch.float32):
             return fn(*args, **kwargs)
     return wrapped
+
+def normalize(tensor, min_val, max_val):
+    if min_val is None:
+        min_val = tensor.min()
+    if max_val is None:
+        max_val = tensor.max()
+
+    # Normalize the tensor to [0, 1]
+    assert torch.all(
+        tensor >= min_val - 1e-3), "Input tensor has values below min_val"
+    assert torch.all(
+        tensor <= max_val + 1e-3), "Input tensor has values above max_val"
+    normalized_tensor = (tensor - min_val) / (max_val - min_val)
+    normalized_tensor = torch.clamp(normalized_tensor, 0, 1)
+
+    return normalized_tensor
+
+def unnormalize(normalized_tensor, min_val, max_val):
+
+    tensor = normalized_tensor * (max_val - min_val) + min_val
+    return tensor
 
 
 class BSpline(torch.nn.Module):
@@ -43,6 +65,11 @@ class BSpline(torch.nn.Module):
                                     device=self.device)
         self.register_buffer("times", times, persistent=False)
 
+        # normalizer bounds making the diffuser predicted params in [-1, 1],
+        # updated in every batch, should be stablized after 1 epoch training
+        self.register_buffer("w_min", -2.0 * torch.ones((num_dof * num_basis)))
+        self.register_buffer("w_max", 2.0 * torch.ones((num_dof * num_basis)))
+
     @property
     def device(self):
         return self.mp.device
@@ -51,8 +78,9 @@ class BSpline(torch.nn.Module):
     def dtype(self):
         return self.mp.dtype
 
+    @torch.no_grad()
     @autocast_float32
-    def traj_to_params(self, action_sequences):
+    def traj_to_params(self, action_sequences, update_bounds: bool = False):
 
         # Shape of times:
         # [*add_dim, num_times]
@@ -65,31 +93,56 @@ class BSpline(torch.nn.Module):
         add_dim = list(action_sequences.shape[:-2])
         times = add_expand_dim(self.times, list(range(len(add_dim))), add_dim)
 
+        # for t in range(1, actions.shape[-2]):
+        # actions[..., t, :] = actions[..., t, :] + actions[..., t-1, :]
+        absolute2current = action_sequences.cumsum(dim=-2)
         # dictionary
-        para = self.mp.learn_mp_params_from_trajs(times, action_sequences)
-        # Reshape params
+        para = self.mp.learn_mp_params_from_trajs(times, absolute2current)
+        if update_bounds:
+            self.update_weights_bounds_per_batch(para["params"])
+
+        # normalize weights
+        params = normalize(para["params"], self.w_min, self.w_max)
         # [*add_dim, num_dof * num_basis] -> [*add_dim, num_dof, num_basis]
-        params = para["params"].reshape(*self.mp.add_dim, self.mp.num_dof, -1)
-        params = torch.einsum('...ji->...ij', params)
+        params = params.reshape(*self.mp.add_dim, self.mp.num_dof, -1)
+        # -> [*add_dim, num_basis, num_dof]
+        params = torch.einsum("...ji->...ij", params)
+
         para["params"] = params
 
         # return para["params"]
         return para
 
+    @torch.no_grad()
     def get_traj(self, para):
 
+        # [*add_dim, num_basis, num_dof] -> [*add_dim, num_dof, num_basis]
         params = torch.einsum('...ji->...ij', para["params"])
         add_dim = list(params.shape[:-2])
+        # -> [*add_dim, num_dof * num_basis]
         params = params.reshape(*add_dim, -1)
+        # unnormalize
+        params = unnormalize(params, self.w_min, self.w_max)
+
         para["params"] = params
-        # add_dim = list(para["params"].shape[:-1])
         times = add_expand_dim(self.times, list(range(len(add_dim))), add_dim)
         self.mp.update_inputs(times, **para)
-
-        traj = self.mp.get_traj_pos()
+        # [*add_dim, num_times, num_dof]
+        absolute2curr = self.mp.get_traj_pos()
+        traj = torch.diff(absolute2curr, dim=-2, prepend=torch.zeros([*add_dim, 1, self.mp.num_dof], dtype=self.dtype, device=self.device))
 
         return traj
 
+    def update_weights_bounds_per_batch(self, weights):
+        weights = weights.reshape(-1, self.mp_config.num_dof * self.mp_config.mp_args.num_basis)
+        batch_min = weights.min(dim=0)[0]
+        batch_max = weights.max(dim=0)[0]
+        smaller_mask = batch_min < (self.w_min - 1e-4)
+        larger_mask = batch_max > (self.w_max + 1e-4)
+        if torch.any(smaller_mask):
+            self.w_min[smaller_mask] = batch_min[smaller_mask]
+        if torch.any(larger_mask):
+            self.w_max[larger_mask] = batch_max[larger_mask]
 
 class BSplineD(BSpline):
 
@@ -111,8 +164,9 @@ class BSplineD(BSpline):
 
         self.mpd = MPFactory.init_mp(**self.mpd_config)
 
+    @torch.no_grad()
     @autocast_float32
-    def traj_to_params(self, action_sequences):
+    def traj_to_params(self, action_sequences, update_bounds: bool = False):
 
         # Shape of times:
         # [*add_dim, num_times]
@@ -123,7 +177,7 @@ class BSplineD(BSpline):
         # Shape of learned params
         # [*add_dim, num_dof * num_basis_g]
 
-        para_ = super(BSplineD, self).traj_to_params(action_sequences[..., :-self.digit_dims])
+        para_ = super(BSplineD, self).traj_to_params(action_sequences[..., :-self.digit_dims], update_bounds)
 
         add_dim = list(action_sequences.shape[:-2])
         times = add_expand_dim(self.times, list(range(len(add_dim))), add_dim)
@@ -137,6 +191,8 @@ class BSplineD(BSpline):
 
         return para_
 
+    # @timeit
+    @torch.no_grad()
     def get_traj(self, para):
 
         # -> [*add_dim, num_dof, num_basis]
