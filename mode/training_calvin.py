@@ -17,7 +17,18 @@ import os
 if "DISPLAY" in os.environ:
     del os.environ["DISPLAY"]
 
-sys.path.insert(0, "/home/weiran/mp_flow/calvin_env")
+# sys.path.insert(0, "/home/i53/student/wliao/projects/mp_flow/calvin_env")
+sys.path.insert(0, "/home/hk-project-p0022253/ew5996/projects/mp_flow/calvin_env")
+# # Get the absolute path of the current script
+# current_script_path = os.path.abspath(__file__)
+# # Get the directory of the script
+# current_script_dir = os.path.dirname(current_script_path)
+# # Construct the target directory relative to the script's location
+# target_dir = os.path.join(current_script_dir, "../../calvin_env")
+# # Normalize the path
+# target_dir = os.path.abspath(target_dir)
+# # Insert the directory into sys.path
+# sys.path.insert(0, target_dir)
 
 
 # This is for using the locally installed repo clone when using slurm
@@ -169,6 +180,8 @@ if __name__ == "__main__":
     os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:512,expandable_segments:True'
     # Add repo to path
     sys.path.insert(0, str(Path(__file__).absolute().parents[1]))
+
+    # os.environ['HYDRA_FULL_ERROR'] = "1"
     
     try:
         train()

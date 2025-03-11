@@ -10,7 +10,18 @@ if "DISPLAY" in os.environ:
     del os.environ["DISPLAY"]
 
 import sys
-sys.path.insert(0, "/home/weiran/mp_flow/calvin_env")
+# sys.path.insert(0, "/home/i53/student/wliao/projects/mp_flow/calvin_env")
+# Get the absolute path of the current script
+current_script_path = os.path.abspath(__file__)
+# Get the directory of the script
+current_script_dir = os.path.dirname(current_script_path)
+# Construct the target directory relative to the script's location
+target_dir = os.path.join(current_script_dir, "../../calvin_env")
+# Normalize the path
+target_dir = os.path.abspath(target_dir)
+# Insert the directory into sys.path
+sys.path.insert(0, target_dir)
+
 
 display = print
 
