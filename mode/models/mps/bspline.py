@@ -95,7 +95,7 @@ class BSpline(torch.nn.Module):
 
         # for t in range(1, actions.shape[-2]):
         # actions[..., t, :] = actions[..., t, :] + actions[..., t-1, :]
-        absolute2current = action_sequences.cumsum(dim=-2)
+        absolute2current = action_sequences.cumsum(-2)
         # dictionary
         para = self.mp.learn_mp_params_from_trajs(times, absolute2current)
         if update_bounds:
@@ -109,6 +109,40 @@ class BSpline(torch.nn.Module):
         params = torch.einsum("...ji->...ij", params)
 
         para["params"] = params
+
+        # debug
+        # params_ = torch.einsum('...ji->...ij', para["params"])
+        # add_dim_ = list(params_.shape[:-2])
+        # params_ = params_.reshape(*add_dim_, -1)
+        # params_ = unnormalize(params_, self.w_min, self.w_max)
+        # para_ = dict()
+        # para_["params"] = params_
+        # self.mp.update_inputs(times, **para_)
+        # absolute_pre = self.mp.get_traj_pos()
+        #
+        # import matplotlib.pyplot as plt
+        # dim = 3
+        #
+        # plt.plot(absolute2current[:, dim], color="blue", label="gt")
+        # plt.plot(absolute_pre[:, dim], color="red", label="traj_pred")
+        # plt.legend()
+        # plt.show()
+        #
+        # rel = torch.diff(torch.tensor(absolute2current), dim=-2,
+        #                  prepend=torch.zeros([*add_dim, 1, self.mp.num_dof],
+        #                                      dtype=self.dtype,
+        #                                      device=self.device))
+        # rel_pre = torch.diff(torch.tensor(absolute_pre), dim=-2,
+        #                      prepend=torch.zeros([*add_dim, 1, self.mp.num_dof],
+        #                                          dtype=self.dtype,
+        #                                          device=self.device))
+        # plt.plot(action_sequences[:, dim], color="blue", label="rel_gt")
+        # plt.plot(rel[:, dim], color="red", label="rel_rec")
+        # plt.plot(rel_pre[:, dim], color="green", label="rel_pre")
+        # plt.legend()
+        # plt.show()
+        #
+        # print(" ")
 
         # return para["params"]
         return para
@@ -195,18 +229,20 @@ class BSplineD(BSpline):
     @torch.no_grad()
     def get_traj(self, para):
 
+        para_ = dict()
+        para_["params"] = para["params"][..., :-self.digit_dims]
+        traj_ = super(BSplineD, self).get_traj(para_)
+
+        params_d = para["params"][..., self.mp.num_dof:]
         # -> [*add_dim, num_dof, num_basis]
-        params = torch.einsum('...ji->...ij', para["params"])
-        add_dim = list(params.shape[:-2])
-        params_ = params[..., :-self.digit_dims, :].reshape(*add_dim, -1)
-        params_d = params[..., self.mp.num_dof:, :].reshape(*add_dim, -1)
+        params_d = torch.einsum('...ji->...ij', params_d)
+        add_dim = list(params_d.shape[:-2])
+        params_d = params_d.reshape(*add_dim, -1)
 
         times = add_expand_dim(self.times, list(range(len(add_dim))), add_dim)
-        self.mp.update_inputs(times, **{"params": params_})
         self.mpd.update_inputs(times, **{"params": params_d})
-
-        traj_ = self.mp.get_traj_pos()
         traj_d = self.mpd.get_traj_pos()
+
         traj = torch.cat([traj_, traj_d], dim=-1)
 
         return traj

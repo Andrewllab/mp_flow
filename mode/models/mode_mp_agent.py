@@ -471,6 +471,30 @@ class MoDEMPAgent(pl.LightningModule):
         current_batch_size = sum(batch_sizes)
         # Log the metrics
         self._log_training_metrics(action_loss, total_loss, total_bs)
+        self.log("train/action_loss", action_loss, on_step=False, on_epoch=True,
+                 sync_dist=True, batch_size=total_bs)
+
+        # log the normalizer bounds
+        normalizer_bound_min = self.mp.w_min.reshape(6, -1)
+        normalizer_bound_max = self.mp.w_max.reshape(6, -1)
+        for i in range(6):
+            self.log(f"train/normalizer_min_dim{i}_min", normalizer_bound_min[i, :].min(), on_step=False, on_epoch=True, sync_dist=True, batch_size=total_bs)
+            self.log(f"train/normalizer_min_dim{i}_max",
+                     normalizer_bound_min[i, :].max(), on_step=False,
+                     on_epoch=True, sync_dist=True, batch_size=total_bs)
+            self.log(f"train/normalizer_min_dim{i}_mean",
+                     normalizer_bound_min[i, :].mean(), on_step=False,
+                     on_epoch=True, sync_dist=True, batch_size=total_bs)
+            self.log(f"train/normalizer_max_dim{i}_min",
+                     normalizer_bound_max[i, :].min(), on_step=False,
+                     on_epoch=True, sync_dist=True, batch_size=total_bs)
+            self.log(f"train/normalizer_max_dim{i}_max",
+                     normalizer_bound_max[i, :].max(), on_step=False,
+                     on_epoch=True, sync_dist=True, batch_size=total_bs)
+            self.log(f"train/normalizer_max_dim{i}_mean",
+                     normalizer_bound_max[i, :].mean(), on_step=False,
+                     on_epoch=True, sync_dist=True, batch_size=total_bs)
+
         if self.entropy_gamma > 0:
             self.log("train/load_balancing_loss", entropy_loss, on_step=False,
                      on_epoch=True, sync_dist=True, batch_size=total_bs)
