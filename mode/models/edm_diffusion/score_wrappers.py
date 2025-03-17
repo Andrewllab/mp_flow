@@ -1,6 +1,7 @@
 from multiprocessing.sharedctypes import Value
 
 import hydra
+import torch
 from torch import DictType, nn
 from .utils import append_dims
 
@@ -23,10 +24,12 @@ class GCDenoiser(nn.Module):
         inner_model: The inner model used for denoising.
         sigma_data: The data sigma for scalings (default: 1.0).
     """
-    def __init__(self, inner_model, sigma_data=1.):
+    def __init__(self, inner_model, mp, sigma_data=1.):
         super().__init__()
         self.inner_model = hydra.utils.instantiate(inner_model)
         self.sigma_data = sigma_data
+
+        self.mp_decoder = hydra.utils.instantiate(mp)
 
     def get_scalings(self, sigma):
         """
@@ -37,9 +40,14 @@ class GCDenoiser(nn.Module):
         Returns:
             The computed scalings for skip connections, output, and input.
         """
-        c_skip = self.sigma_data ** 2 / (sigma ** 2 + self.sigma_data ** 2)
-        c_out = sigma * self.sigma_data / (sigma ** 2 + self.sigma_data ** 2) ** 0.5
+        # c_skip = self.sigma_data ** 2 / (sigma ** 2 + self.sigma_data ** 2)
+        # c_out = sigma * self.sigma_data / (sigma ** 2 + self.sigma_data ** 2) ** 0.5
         c_in = 1 / (sigma ** 2 + self.sigma_data ** 2) ** 0.5
+
+        # from MPD paper
+        c_skip = torch.zeros_like(sigma)
+        c_out = torch.ones_like(sigma)
+
         return c_skip, c_out, c_in
 
     def loss(self, state, action, goal, noise, sigma, **kwargs):
@@ -58,7 +66,8 @@ class GCDenoiser(nn.Module):
         """
         c_skip, c_out, c_in = [append_dims(x, action.ndim) for x in self.get_scalings(sigma)]
         noised_input = action + noise * append_dims(sigma, action.ndim)
-        model_output = self.inner_model(state, noised_input * c_in, goal, sigma, **kwargs)
+        weights = self.inner_model(state, noised_input * c_in, goal, sigma, **kwargs)
+        model_output = self.mp_decoder.get_traj({"params": weights})
         target = (action - c_skip * noised_input) / c_out
         return (model_output - target).pow(2).flatten(1).mean(), model_output
 
@@ -77,7 +86,10 @@ class GCDenoiser(nn.Module):
             The output of the forward pass.
         """
         c_skip, c_out, c_in = [append_dims(x, action.ndim) for x in self.get_scalings(sigma)]
-        return self.inner_model(state, action * c_in, goal, sigma, **kwargs) * c_out + action * c_skip
+        # weights = self.inner_model(state, action * c_in, goal, sigma, **kwargs) * c_out + action * c_skip
+        weights = self.inner_model(state, action * c_in, goal, sigma, **kwargs)
+        actions = self.mp_decoder.get_traj({"params": weights}) * c_out + action * c_skip
+        return actions
     
     def forward_context_only(self, state, action, goal, sigma, **kwargs):
         """

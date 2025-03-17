@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, Optional, Tuple, List, DefaultDict
+from typing import Any, Dict, Optional, Tuple, List, DefaultDict, Set
 from functools import partial
 import seaborn as sns
 
@@ -140,9 +140,13 @@ class MoDEMPAgent(pl.LightningModule):
         self.lang_buffer = AdvancedLangEmbeddingBuffer(self.language_goal,
                                                        10000)
         # movement primitives
-        mp["device"] = str(self.model.inner_model.device)
-        mp["device"] = "cuda"
-        self.mp = hydra.utils.instantiate(mp)
+        # mp["device"] = str(self.model.inner_model.device)
+        # mp["device"] = "cuda"
+        # self.mp = hydra.utils.instantiate(mp)
+
+    @property
+    def mp(self):
+        return self.model.mp_decoder
 
     def load_pretrained_parameters(self, ckpt_path, strict: bool = False):
         """
@@ -487,36 +491,36 @@ class MoDEMPAgent(pl.LightningModule):
         perceptual_emb, latent_goal = self.compute_input_embeddings(
             dataset_batch)
 
-        # action_pred = self.denoise_actions(
-        #     torch.zeros_like(latent_goal).to(self.device),
-        #     perceptual_emb,
-        #     latent_goal,
-        #     inference=True,
-        # )
-
-        params_pred = self.denoise_actions(
+        action_pred = self.denoise_actions(
             torch.zeros_like(latent_goal).to(self.device),
             perceptual_emb,
             latent_goal,
             inference=True,
         )
 
+        # params_pred = self.denoise_actions(
+        #     torch.zeros_like(latent_goal).to(self.device),
+        #     perceptual_emb,
+        #     latent_goal,
+        #     inference=True,
+        # )
+
         # mse_loss in trajectory level and parameter level
         actions = dataset_batch["actions"].to(self.device)
-        para = self.mp.traj_to_params(actions)
-        params = para["params"]
+        # para = self.mp.traj_to_params(actions)
+        # params = para["params"]
         # pred_loss = torch.nn.functional.mse_loss(action_pred, actions)
-        pred_loss = torch.nn.functional.mse_loss(params_pred, params)
+        # pred_loss = torch.nn.functional.mse_loss(params_pred, params)
 
-        trajs_recon = self.mp.get_traj({"params": params_pred})
-        trajs_loss = torch.nn.functional.mse_loss(trajs_recon, actions)
+        # trajs_recon = self.mp.get_traj({"params": params_pred})
+        trajs_loss = torch.nn.functional.mse_loss(action_pred, actions)
 
-        self._log_validation_metrics(pred_loss)
+        # self._log_validation_metrics(pred_loss)
         self.log(f"val_act/{self.modality_scope}_trajr_loss_pp", trajs_loss,
                  sync_dist=True)
 
         output[f"idx_{self.modality_scope}"] = dataset_batch["idx"]
-        output["validation_loss"] = pred_loss
+        output["validation_loss"] = trajs_loss
         self.log_expert_usage(self.model, self.current_epoch)
         return output
 
@@ -668,23 +672,23 @@ class MoDEMPAgent(pl.LightningModule):
         perceptual_emb = self.embed_visual_obs(rgb_static, rgb_gripper,
                                                latent_goal)
 
-        # act_seq = self.denoise_actions(
-        #     torch.zeros_like(latent_goal).to(latent_goal.device),
-        #     perceptual_emb,
-        #     latent_goal,
-        #     inference=True,
-        # )
-        params = self.denoise_actions(
+        act_seq = self.denoise_actions(
             torch.zeros_like(latent_goal).to(latent_goal.device),
             perceptual_emb,
             latent_goal,
             inference=True,
         )
+        # params = self.denoise_actions(
+        #     torch.zeros_like(latent_goal).to(latent_goal.device),
+        #     perceptual_emb,
+        #     latent_goal,
+        #     inference=True,
+        # )
 
-        para = dict()
-        para["params"] = params
+        # para = dict()
+        # para["params"] = params
 
-        act_seq = self.mp.get_traj(para)
+        # act_seq = self.mp.get_traj(para)
 
         return act_seq
         # return para, act_seq  # for debug
@@ -748,15 +752,15 @@ class MoDEMPAgent(pl.LightningModule):
         Computes the score matching loss given the perceptual embedding, latent goal, and desired actions.
         """
 
-        param = self.mp.traj_to_params(actions)
-        params = param["params"]
+        # param = self.mp.traj_to_params(actions)
+        # params = param["params"]
 
         self.model.train()
 
-        sigmas = self.make_sample_density()(shape=(len(params),),
+        sigmas = self.make_sample_density()(shape=(len(actions),),
                                             device=self.device).to(self.device)
-        noise = torch.randn_like(params).to(self.device)
-        loss, _ = self.model.loss(perceptual_emb, params, latent_goal, noise,
+        noise = torch.randn_like(actions).to(self.device)
+        loss, _ = self.model.loss(perceptual_emb, actions, latent_goal, noise,
                                   sigmas)
 
         return loss
@@ -861,11 +865,11 @@ class MoDEMPAgent(pl.LightningModule):
         if len(latent_goal.shape) == 2:
             latent_goal = einops.rearrange(latent_goal, 'b d -> 1 b d')
 
-        # x = torch.randn((len(latent_goal), self.act_window_size, 7),
-        #                 device=self.device) * self.sigma_max
-        x = torch.randn((len(latent_goal), self.mp.mp_config.mp_args.num_basis,
-                         self.mp.num_dof),
+        x = torch.randn((len(latent_goal), self.act_window_size, 7),
                         device=self.device) * self.sigma_max
+        # x = torch.randn((len(latent_goal), self.mp.mp_config.mp_args.num_basis,
+        #                  self.mp.num_dof),
+        #                 device=self.device) * self.sigma_max
 
         actions = self.sample_loop(sigmas, x, input_state, latent_goal,
                                    latent_plan, self.sampler_type, extra_args)

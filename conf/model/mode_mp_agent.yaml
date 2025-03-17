@@ -18,7 +18,7 @@ sigma_sample_density_type: 'loglogistic' # 'loglogistic' or 'loguniform'
 #start_from_pretrained: True
 start_from_pretrained: False
 act_window_size: ${act_seq_len}
-latent_dim: 384
+latent_dim: 512
 obs_enc_dim: ${obs_dim}
 cond_dim: 512
 resnet_type: '50'
@@ -56,7 +56,7 @@ model:
     use_proprio: ${model.use_proprio}
     state_dim: ${proprio_dims}
     embed_dim: ${model.latent_dim}
-    n_layers: 4
+    n_layers: 8
     goal_seq_len: 1
     obs_seq_len: ${obs_seq_len}
 #    action_seq_len: ${act_seq_len}
@@ -78,6 +78,19 @@ model:
     use_shared_expert: False
     use_noise_token_as_input: True
     init_style: 'olmoe'
+    act_len_training: ${act_seq_len}
+
+  mp:
+    _target_: mode.models.mps.bspline.BSplineD
+    _recursive_: false
+    num_dof: ${datamodule.action_space}
+    num_basis: 10
+    degree_p: 4
+    device: cuda
+    seq_len: ${act_seq_len}
+    frequency: 30
+    weights_scale: 1.2
+    digit_dims: 1
 
 
 language_goal:
@@ -87,13 +100,14 @@ language_goal:
 
 
 # added for mp
-mp:
-  _target_: mode.models.mps.bspline.BSpline
-  _recursive_: false
-  num_dof: ${datamodule.action_space}
-  num_basis: 10
-  degree_p: 4
-  device: cuda
-  seq_len: ${act_seq_len}
-  frequency: 30
-  weights_scale: 1.2
+#mp:
+#  _target_: mode.models.mps.bspline.BSplineD
+#  _recursive_: false
+#  num_dof: ${datamodule.action_space}
+#  num_basis: 10
+#  degree_p: 4
+#  device: cuda
+#  seq_len: ${act_seq_len}
+#  frequency: 30
+#  weights_scale: 1.2
+#  digit_dims: 1

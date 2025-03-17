@@ -635,7 +635,27 @@ class NoiseBlockMoE(nn.Module):
     def reset_expert_cache(self):
         """Reset expert cache"""
         self.fused_experts = {}
-    
+
+
+class ActionEmbedding(nn.Module):
+
+    def __init__(self, training_seq_len, num_weigts, action_dim, emb_dim):
+        super(ActionEmbedding, self).__init__()
+        self.training_seq_len = training_seq_len
+        self.num_weigts = num_weigts
+        self.action_dim = action_dim
+        self.emb_dim = emb_dim
+        self.seq_compress = nn.Linear(self.training_seq_len, self.num_weigts, bias=False)
+        self.embed = nn.Linear(self.action_dim, self.emb_dim, bias=False)
+
+    def forward(self, actions):
+
+        # [batch_dim, num_seq, num_dof] -> [batch_dim, num_dof, num_basis]
+        seq_compressed = self.seq_compress(actions.movedim(-2, -1))
+        # -> [batch_dim, num_weights, embed_dim]
+        action_embed = self.embed(seq_compressed.movedim(-2, -1))
+
+        return action_embed
 
 
 class MoDeDiT(nn.Module):
@@ -670,7 +690,8 @@ class MoDeDiT(nn.Module):
         use_shared_expert: bool = False,
         use_noise_token_as_input: bool = True,
         use_custom_attn_mask: bool = False,
-        init_style: str = 'default'
+        init_style: str = 'default',
+        act_len_training: int = 20,
     ):
         super().__init__()
         self.device = device
@@ -683,7 +704,8 @@ class MoDeDiT(nn.Module):
         self.tok_emb = nn.Linear(obs_dim, embed_dim, bias=False)
         self.gripper_embed = nn.Linear(obs_dim, embed_dim, bias=False)
         self.goal_emb = nn.Linear(goal_dim, embed_dim, bias=False)
-        self.action_emb = nn.Linear(action_dim, embed_dim, bias=False)
+        # self.action_emb = nn.Linear(act_len_training*action_dim , action_seq_len*embed_dim, bias=False)
+        self.action_emb = ActionEmbedding(act_len_training, action_seq_len, action_dim, embed_dim)
         self.pos_emb = nn.Parameter(torch.zeros(1, seq_size, embed_dim))
         self.drop = nn.Dropout(embed_pdrob)
         if self.use_proprio:
@@ -737,6 +759,7 @@ class MoDeDiT(nn.Module):
         logger.info("Weights initialized using custom _init_weights method")
         self.logits_per_layer = None
         self.probs_per_layer = None
+        self.act_len_training = act_len_training
 
     def forward(
         self, 
@@ -763,8 +786,12 @@ class MoDeDiT(nn.Module):
         else:
             proprio_embed = None
         goal_embed = self.goal_emb(goals)
+        # batch_shape = actions.shape[:-2]
+        # actions_ = actions.reshape(*batch_shape, -1)
+        # action_embed = self.action_emb(actions_)
+        # action_embed = action_embed.view(*batch_shape, self.action_seq_len, self.embed_dim)
         action_embed = self.action_emb(actions)
-        
+
         # if not uncond:
         if self.goal_conditioned:
             position_embeddings = self.pos_emb[

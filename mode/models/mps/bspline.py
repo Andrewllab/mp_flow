@@ -52,6 +52,12 @@ class BSpline(torch.nn.Module):
     def dtype(self):
         return self.mp.dtype
 
+    @property
+    def weights(self):
+        return self.mp.params
+
+    # not used in this branch
+    @torch.no_grad()
     @autocast_float32
     def traj_to_params(self, action_sequences):
 
@@ -112,6 +118,8 @@ class BSplineD(BSpline):
 
         self.mpd = MPFactory.init_mp(**self.mpd_config)
 
+    # not used in this branch
+    @torch.no_grad()
     @autocast_float32
     def traj_to_params(self, action_sequences):
 
@@ -139,21 +147,57 @@ class BSplineD(BSpline):
         return para_
 
     # @timeit
-    def get_traj(self, para):
+    # def get_traj(self, para):
+    #
+    #     # -> [*add_dim, num_dof, num_basis]
+    #     params = torch.einsum('...ji->...ij', para["params"])
+    #     add_dim = list(params.shape[:-2])
+    #     params_ = params[..., :-self.digit_dims, :].reshape(*add_dim, -1)
+    #     params_d = params[..., self.mp.num_dof:, :].reshape(*add_dim, -1)
+    #
+    #     times = add_expand_dim(self.times, list(range(len(add_dim))), add_dim)
+    #     self.mp.update_inputs(times, **{"params": params_})
+    #     self.mpd.update_inputs(times, **{"params": params_d})
+    #
+    #     traj_ = self.mp.get_traj_pos()
+    #     traj_d = self.mpd.get_traj_pos()
+    #     traj = torch.cat([traj_, traj_d], dim=-1)
+    #
+    #     return traj
 
+    def get_traj(self, para):
+        para_ = dict()
+        para_["params"] = para["params"][..., :-self.digit_dims]
+        traj_ = super(BSplineD, self).get_traj(para_)
+
+        params_d = para["params"][..., self.mp.num_dof:]
         # -> [*add_dim, num_dof, num_basis]
-        params = torch.einsum('...ji->...ij', para["params"])
-        add_dim = list(params.shape[:-2])
-        params_ = params[..., :-self.digit_dims, :].reshape(*add_dim, -1)
-        params_d = params[..., self.mp.num_dof:, :].reshape(*add_dim, -1)
+        params_d = torch.einsum('...ji->...ij', params_d)
+        add_dim = list(params_d.shape[:-2])
+        params_d = params_d.reshape(*add_dim, -1)
 
         times = add_expand_dim(self.times, list(range(len(add_dim))), add_dim)
-        self.mp.update_inputs(times, **{"params": params_})
         self.mpd.update_inputs(times, **{"params": params_d})
-
-        traj_ = self.mp.get_traj_pos()
         traj_d = self.mpd.get_traj_pos()
+
         traj = torch.cat([traj_, traj_d], dim=-1)
 
         return traj
+
+    @property
+    def weights(self):
+        weights_ = super().weights
+        if weights_ is None:
+            return None
+
+        # -> [*add_dim, num_dof, num_basis]
+        weights_ = weights_.reshape(*self.mp.add_dim, self.mp.num_dof, -1)
+
+        weights_D = self.mpd.params
+        weights_D = weights_D.reshape(*self.mpd.add_dim, self.mpd.num_dof, -1)
+
+        weights = torch.cat([weights_, weights_D], dim=-2)
+        weights = weights.reshape(self.mpd.add_dim, -1)
+
+        return weights
 
