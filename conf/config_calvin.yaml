@@ -7,45 +7,49 @@ defaults:
   - override hydra/hydra_logging: colorlog
 
 
-root_data_dir: /home/weiran/mp_flow/dataset/calvin_debug_dataset
+#root_data_dir: /home/temp_store/weiran/calvin_dataset/task_D_D
+root_data_dir: /home/hk-project-p0022253/ew5996/ws_data/hkfswork/ew5996-mp_flow/dataset/calvin/task_D_D
+#root_data_dir: /home/i53/student/wliao/projects/mp_flow/dataset/calvin_debug_dataset
 #lang_folder: lang_clip_resnet50
 lang_folder: lang_annotations
 vis_clip_model_name: ViT-B/16
 clip_lang_model_name: ViT-B/32
 
-log_dir: ./logs
+#log_dir: /home/temp_store/weiran/logs
+log_dir: /home/hk-project-p0022253/ew5996/ws_data/hkfswork/ew5996-mp_flow/dataset/calvin/D_D/mpd_rel/logs
+#log_dir: ./logs
 slurm: false
 seed: 242
 device: 'cuda'
 #batch_size: 64 # 38 # 128
-batch_size: 1 # 38 # 128
-#devices: 4
-devices: 1
+batch_size: 320 # 38 # 128
+devices: 4
+#devices: 1
 act_dim: 7
 proprio_dims: 7
 obs_dim: 512
 goal_dim: 512
 obs_seq_len: 1
 #act_seq_len: 10
-act_seq_len: 60
+act_seq_len: 20
 #multistep: 10 #${act_seq_len}
 multistep: ${act_seq_len}
 p_last_state: 0
 gen_img_res: 112
-max_epochs: 20
-rollout_lh_skip_epochs: 9
+max_epochs: 500
+rollout_lh_skip_epochs: 24
 num_workers: 12
 benchmark_name: calvin_d # calvin_abcd
 use_extracted_rel_actions: true
 
 trainer:
   devices: ${devices}
-#  precision: bf16
-  precision: 32
+  precision: bf16
+#  precision: 32
   max_epochs: ${max_epochs}
   sync_batchnorm: True
   accelerator: gpu
-  strategy: "ddp" 
+  strategy: "ddp"
   limit_train_batches: 1000
   limit_val_batches: 4
 
@@ -55,10 +59,10 @@ logger:
   _target_: pytorch_lightning.loggers.WandbLogger
   save_dir: .
   name: logger
-  group: mode_orginal
+  group: mode_mpd_rel
   log_model: false
 #  project: ${benchmark_name}
-  project: mode_mp_debug
+  project: calvin_D_D
   entity: mp_flow
 #  id: ???
   id: 000
@@ -79,3 +83,4 @@ hydra:
           - datamodule.num_workers
           - trainer.limit_train_batches
           - trainer.limit_val_batches
+
