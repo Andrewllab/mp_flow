@@ -155,8 +155,61 @@ def get_default_model_and_env(train_folder, dataset_path, checkpoint, env=None, 
     return model, env, data_module, lang_embeddings
 
 
-def get_default_mode_and_env(train_folder, dataset_path, checkpoint, env=None, lang_embeddings=None, prep_dm_and_deps=True, device_id=0, eval_cfg_overwrite={}):
-    train_cfg_path = Path(train_folder) / checkpoint / ".hydra/config.yaml"
+# def get_default_mode_and_env(train_folder, dataset_path, checkpoint, env=None, lang_embeddings=None, prep_dm_and_deps=True, device_id=0, eval_cfg_overwrite={}):
+#     train_cfg_path = Path(train_folder) / checkpoint / ".hydra/config.yaml"
+#     train_cfg_path = format_sftp_path(train_cfg_path)
+#     def_cfg = OmegaConf.load(train_cfg_path)
+#     eval_override_cfg = OmegaConf.create(eval_cfg_overwrite)
+#     cfg = OmegaConf.merge(def_cfg, eval_override_cfg)
+#     lang_folder = cfg.datamodule.datasets.lang_dataset.lang_folder
+#     if not hydra.core.global_hydra.GlobalHydra.instance().is_initialized():
+#         hydra.initialize("../../conf/datamodule/datasets")
+#     # we don't want to use shm dataset for evaluation
+#     # GlobalHydra.instance().clear()
+#     # datasets_cfg = hydra.initialize("datamodule/datasets/vision_lang.yaml")
+#     # since we don't use the trainer during inference, manually set up data_module
+#     # cfg.datamodule.datasets = datasets_cfg
+#     if device_id != 'cpu':
+#         device = torch.device(f"cuda:{device_id}")
+#     else:
+#         device = 'cpu'
+#     cfg.datamodule.root_data_dir = dataset_path
+#     data_module = hydra.utils.instantiate(cfg.datamodule, num_workers=0)
+#     if prep_dm_and_deps:
+#         data_module.prepare_data()
+#         data_module.setup()
+#         dataloader = data_module.val_dataloader()
+#         dataset = dataloader["lang"].dataset
+#
+#         if lang_embeddings is None:
+#             lang_embeddings = LangEmbeddings(dataset.abs_datasets_dir, lang_folder, device=device)
+#
+#         if env is None:
+#             rollout_cfg = OmegaConf.load(Path(__file__).parents[2] / "conf/callbacks/rollout_lh/calvin.yaml")
+#             env = hydra.utils.instantiate(rollout_cfg.env_cfg, dataset, device, show_gui=False)
+#
+#
+#     # new stuff
+#     # overwrite_cfg = cfg.overwrite_module_cfg if "overwrite_module_cfg" in cfg else {}
+#     module_path = (Path(train_folder).expanduser())
+#
+#     print(f"Loading model from {module_path / checkpoint}")
+#     model = load_mode_from_safetensor(
+#         module_path / checkpoint,
+#         overwrite_cfg=eval_cfg_overwrite.model if "model" in eval_cfg_overwrite else {},
+#     )
+#     model.freeze()
+#     model = model.cuda(device)
+#     print("Successfully loaded model.")
+#
+#     return model, env, data_module, lang_embeddings
+
+
+def get_default_mode_and_env(train_folder, dataset_path, checkpoint, env=None,
+                             lang_embeddings=None, prep_dm_and_deps=True, device_id=0, eval_cfg_overwrite={}):
+    #  for evaluation from checkpoint ckpt file
+
+    train_cfg_path = Path(train_folder) / ".hydra/config.yaml"
     train_cfg_path = format_sftp_path(train_cfg_path)
     def_cfg = OmegaConf.load(train_cfg_path)
     eval_override_cfg = OmegaConf.create(eval_cfg_overwrite)
@@ -188,16 +241,10 @@ def get_default_mode_and_env(train_folder, dataset_path, checkpoint, env=None, l
             rollout_cfg = OmegaConf.load(Path(__file__).parents[2] / "conf/callbacks/rollout_lh/calvin.yaml")
             env = hydra.utils.instantiate(rollout_cfg.env_cfg, dataset, device, show_gui=False)
 
-
-    # new stuff
-    # overwrite_cfg = cfg.overwrite_module_cfg if "overwrite_module_cfg" in cfg else {}
-    module_path = (Path(train_folder).expanduser())
-
-    print(f"Loading model from {module_path / checkpoint}")
-    model = load_mode_from_safetensor(
-        module_path / checkpoint,
-        overwrite_cfg=eval_cfg_overwrite.model if "model" in eval_cfg_overwrite else {},
-    )
+    checkpoint = format_sftp_path(Path(checkpoint))
+    print(f"Loading model from {checkpoint}")
+    model = load_pl_module_from_checkpoint(checkpoint,
+        overwrite_cfg=eval_cfg_overwrite.model if "model" in eval_cfg_overwrite else {})
     model.freeze()
     model = model.cuda(device)
     print("Successfully loaded model.")

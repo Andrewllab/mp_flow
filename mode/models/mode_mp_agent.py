@@ -25,6 +25,7 @@ from mode.utils.lang_buffer import AdvancedLangEmbeddingBuffer
 
 from mode.models.mps.bspline import BSpline
 # from mode.utils.utils import timeit
+import mode.utils.rotations as rot
 
 logger = logging.getLogger(__name__)
 
@@ -446,6 +447,7 @@ class MoDEMPAgent(pl.LightningModule):
                 perceptual_emb,
                 latent_goal,
                 dataset_batch["actions"],
+                dataset_batch["ee_states"]
             )
 
             if self.entropy_gamma > 0:
@@ -527,14 +529,21 @@ class MoDEMPAgent(pl.LightningModule):
 
         # mse_loss in trajectory level and parameter level
         actions = dataset_batch["actions"].to(self.device)
+        ee_states = dataset_batch["ee_states"].to(self.device)
+        ref = actions[..., :6] + ee_states
+        for b in range(ref.shape[0]):
+            for t in range(ref.shape[1]):
+                orid = rot.combine_axis_angle_rotations(ee_states[b,t,3:], actions[b, t, 3:6])
+                ref[b, t, 3:6] = orid
+        ref = torch.cat([ref, actions[..., -1:]], dim=-1)
         update_bounds = self.current_epoch == 0
-        para = self.mp.traj_to_params(actions, update_bounds=update_bounds)
+        para = self.mp.traj_to_params(actions, update_bounds=update_bounds, ee_states=ee_states)
         params = para["params"]
         # pred_loss = torch.nn.functional.mse_loss(action_pred, actions)
         pred_loss = torch.nn.functional.mse_loss(params_pred, params)
 
         trajs_recon = self.mp.get_traj({"params": params_pred})
-        trajs_loss = torch.nn.functional.mse_loss(trajs_recon, actions)
+        trajs_loss = torch.nn.functional.mse_loss(trajs_recon, ref)
 
         self._log_validation_metrics(pred_loss)
         self.log(f"val_act/{self.modality_scope}_trajr_loss_pp", trajs_loss,
@@ -769,6 +778,7 @@ class MoDEMPAgent(pl.LightningModule):
             perceptual_emb: torch.Tensor,
             latent_goal: torch.Tensor,
             actions: torch.Tensor,
+            ee_states: torch.Tensor,
     ) -> torch.Tensor:
         """
         Computes the score matching loss given the perceptual embedding, latent goal, and desired actions.
@@ -777,7 +787,7 @@ class MoDEMPAgent(pl.LightningModule):
         # Shape of trajs:
         # [*add_dim, num_times, num_dof]
 
-        param = self.mp.traj_to_params(actions, update_bounds=True)
+        param = self.mp.traj_to_params(actions, update_bounds=True, ee_states=ee_states)
         params = param["params"]
 
         self.model.train()

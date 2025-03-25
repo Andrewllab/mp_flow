@@ -69,6 +69,7 @@ class TranslatedSequenceVLDataset(Dataset):
 
     def get_des_act_obs_sequence(self, return_dict):
 
+        return_dict["ee_states"] = return_dict['obs']['ee_states']
         for key in return_dict['obs']:
             return_dict['obs'][key] = return_dict['obs'][key][:self.obs_seq_len]
         return_dict['actions'] = return_dict['actions'][:self.act_seq_len]
@@ -93,6 +94,7 @@ class TranslatedSequenceVLDataset(Dataset):
         translated_dict['actions'] = dict['actions']
         # translated_dict['robot_obs'] = dict['robot_obs']
         translated_dict['robot_obs'] = np.concatenate([dict['robot_obs'], np.expand_dims(dict['obs']['gripper_states'][0], 0)], axis=-1)
+        translated_dict["ee_states"] = dict["ee_states"]
         return translated_dict
 
     def combine_goal_obs_with_obs(self, obs, goal_obs):

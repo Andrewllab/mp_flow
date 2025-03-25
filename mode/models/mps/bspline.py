@@ -6,6 +6,7 @@ from addict import Dict
 from mp_pytorch.mp import MPFactory
 from mp_pytorch.util import add_expand_dim
 # from mode.utils.utils import timeit
+import mode.utils.rotations as rot
 
 
 def autocast_float32(fn):
@@ -80,7 +81,7 @@ class BSpline(torch.nn.Module):
 
     @torch.no_grad()
     @autocast_float32
-    def traj_to_params(self, action_sequences, update_bounds: bool = False):
+    def traj_to_params(self, action_sequences, update_bounds: bool = False, **kwargs):
 
         # Shape of times:
         # [*add_dim, num_times]
@@ -94,10 +95,21 @@ class BSpline(torch.nn.Module):
         times = add_expand_dim(self.times, list(range(len(add_dim))), add_dim)
 
         # for t in range(1, actions.shape[-2]):
-        # actions[..., t, :] = actions[..., t, :] + actions[..., t-1, :]
-        absolute2current = action_sequences.cumsum(-2)
+        #   actions[..., t, :] = actions[..., t, :] + actions[..., t-1, :]
+        # absolute2current = action_sequences.cumsum(-2)
+        ee_states = kwargs["ee_states"]
+        ref = action_sequences + ee_states
+
+        # using axis-angle rotation combination
+        for b in range(ref.shape[0]):
+            for t in range(ref.shape[1]):
+                orid = rot.combine_axis_angle_rotations(ee_states[b,t,3:], action_sequences[b, t, 3:6])
+                ref[b, t, 3:6] = orid
+
+
         # dictionary
-        para = self.mp.learn_mp_params_from_trajs(times, absolute2current)
+        # para = self.mp.learn_mp_params_from_trajs(times, absolute2current)
+        para = self.mp.learn_mp_params_from_trajs(times, ref)
         if update_bounds:
             self.update_weights_bounds_per_batch(para["params"])
 
@@ -148,7 +160,7 @@ class BSpline(torch.nn.Module):
         return para
 
     @torch.no_grad()
-    def get_traj(self, para):
+    def get_traj(self, para, **kwargs):
 
         # [*add_dim, num_basis, num_dof] -> [*add_dim, num_dof, num_basis]
         params = torch.einsum('...ji->...ij', para["params"])
@@ -162,9 +174,11 @@ class BSpline(torch.nn.Module):
         times = add_expand_dim(self.times, list(range(len(add_dim))), add_dim)
         self.mp.update_inputs(times, **para)
         # [*add_dim, num_times, num_dof]
-        absolute2curr = self.mp.get_traj_pos()
-        traj = torch.diff(absolute2curr, dim=-2, prepend=torch.zeros([*add_dim, 1, self.mp.num_dof], dtype=self.dtype, device=self.device))
+        # absolute2curr = self.mp.get_traj_pos()
+        # traj = torch.diff(absolute2curr, dim=-2, prepend=torch.zeros([*add_dim, 1, self.mp.num_dof], dtype=self.dtype, device=self.device))
+        traj = self.mp.get_traj_pos()
 
+        # return the absolute desired pose
         return traj
 
     def update_weights_bounds_per_batch(self, weights):
@@ -177,6 +191,7 @@ class BSpline(torch.nn.Module):
             self.w_min[smaller_mask] = batch_min[smaller_mask]
         if torch.any(larger_mask):
             self.w_max[larger_mask] = batch_max[larger_mask]
+
 
 class BSplineD(BSpline):
 
@@ -200,7 +215,7 @@ class BSplineD(BSpline):
 
     @torch.no_grad()
     @autocast_float32
-    def traj_to_params(self, action_sequences, update_bounds: bool = False):
+    def traj_to_params(self, action_sequences, update_bounds: bool = False, **kwargs):
 
         # Shape of times:
         # [*add_dim, num_times]
@@ -211,7 +226,7 @@ class BSplineD(BSpline):
         # Shape of learned params
         # [*add_dim, num_dof * num_basis_g]
 
-        para_ = super(BSplineD, self).traj_to_params(action_sequences[..., :-self.digit_dims], update_bounds)
+        para_ = super(BSplineD, self).traj_to_params(action_sequences[..., :-self.digit_dims], update_bounds, **kwargs)
 
         add_dim = list(action_sequences.shape[:-2])
         times = add_expand_dim(self.times, list(range(len(add_dim))), add_dim)
@@ -227,11 +242,11 @@ class BSplineD(BSpline):
 
     # @timeit
     @torch.no_grad()
-    def get_traj(self, para):
+    def get_traj(self, para, **kwargs):
 
         para_ = dict()
         para_["params"] = para["params"][..., :-self.digit_dims]
-        traj_ = super(BSplineD, self).get_traj(para_)
+        traj_ = super(BSplineD, self).get_traj(para_, **kwargs)
 
         params_d = para["params"][..., self.mp.num_dof:]
         # -> [*add_dim, num_dof, num_basis]

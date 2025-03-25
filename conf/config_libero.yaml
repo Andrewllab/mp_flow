@@ -1,11 +1,12 @@
 defaults:
   - callbacks: libero
   - datamodule: libero
-  - model: mode_agent
+  - model: mode_mp_agent
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
-root_data_dir: /home/weiran/MoDE_Calvin/dataset/task_ABC_D
+#root_data_dir: /home/weiran/MoDE_Calvin/dataset/task_ABC_D
+root_data_dir: /home/i53/student/wliao/projects/mp_flow/conf/config_libero.yaml
 lang_folder: lang_clip_resnet50
 vis_clip_model_name: ViT-B/16
 clip_lang_model_name: ViT-B/32
@@ -16,7 +17,7 @@ future_range: 29
 seed: 242
 device: 'cuda'
 batch_size: 128 # 38 # 128
-devices: 2
+devices: 1
 goal_window_size: 1
 act_dim: 7
 proprio_dims: 9
@@ -28,10 +29,10 @@ multistep: ${act_seq_len}
 p_last_state: 0
 gen_img_res: 112
 max_epochs: 20
-rollout_lh_skip_epochs: 9
-num_workers: 1
+rollout_lh_skip_epochs: 10
+num_workers: 12
 benchmark_name: ${libero_benchmark} 
-libero_benchmark: libero_10
+libero_benchmark: libero_goal
 
 
 trainer:
@@ -48,9 +49,9 @@ logger:
   _target_: pytorch_lightning.loggers.WandbLogger
   save_dir: .
   name: logger
-  group: mode
+  group: mode_abs2curr
   log_model: false
-  project: ${libero_benchmark}
+  project: ${libero_benchmark}_debug
   entity: mp_flow
   id: ???
 

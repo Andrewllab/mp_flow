@@ -31,7 +31,7 @@ from mode.evaluation.multistep_sequences import get_sequences
 from mode.evaluation.utils import get_env_state_for_initial_condition, join_vis_lang, LangEmbeddings
 from mode.rollout.rollout_video import RolloutVideo
 from typing import Any, Dict, Tuple, Union
-
+import mode.utils.rotations as rot
 
 log_print = logging.getLogger(__name__)
 
@@ -353,6 +353,17 @@ class RolloutLibero(Callback):
                 # data = raw_obs_to_tensor_obs(obs, task_emb, cfg)
                 actions = model.step(data, goal).unsqueeze(0)
                 actions = actions.cpu().numpy()
+                current_pos = data["propri"]["ee_pos"]
+                current_ori = data["propri"]["ee_quat"]
+
+                actions[0, :3] -= current_pos
+                # assume libero adta used axis-angle used
+                current_ori = rot.quaternion_to_axis_angle(current_ori)
+                delta_aa = rot.delta_axis_angle(current_ori, actions[0, 3:6])
+                actions[0, 3:6] = delta_aa
+                # direct substract used
+                # actions[0, 3:6] -= current_ori
+
                 obs, reward, done, info = env.step(actions)
 
                 if store_video:
@@ -401,6 +412,9 @@ class RolloutLibero(Callback):
         translated_dict['robot_obs'] = obs_space['robot0_joint_pos']
         translated_dict['gripper_states'] = obs_space['robot0_gripper_qpos']
         translated_dict['depth_obs'] = {}
+        translated_dict['propri'] = {}
+        translated_dict['propri']["ee_pos"] = obs_space['robot0_eef_pos']
+        translated_dict['propri']["ee_quat"] = obs_space['robot0_eef_quat']
 
         return translated_dict
 
