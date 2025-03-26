@@ -366,9 +366,13 @@ class RolloutLibero(Callback):
                 # direct substract used
                 # actions[0, 3:6] -= current_ori
 
-                delta_euler = pp.get_delta_rot(actions[0, 3:6], current_ori)
+                # delta_euler = pp.get_delta_rot(actions[0, 3:6], current_ori)
+                # actions[0, :3] -= current_pos
+                # actions[0, 3:6] = delta_euler
+
+                delta_aa = pp.get_delta_rot_aa(actions[0, 3:6], current_ori)
                 actions[0, :3] -= current_pos
-                actions[0, 3:6] = delta_euler
+                actions[0, 3:6] = delta_aa
 
                 obs, reward, done, info = env.step(actions)
 

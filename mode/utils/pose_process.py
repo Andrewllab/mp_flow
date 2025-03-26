@@ -21,7 +21,8 @@ def rel2abs(rel_action, ee_state):
 
     for b in range(ref.shape[0]):
         for t in range(ref.shape[1]):
-            ori_d = combine_aa_euler(ee_state[b, t, 3:6], rel_action[b, t, 3:6])
+            # ori_d = combine_aa_euler(ee_state[b, t, 3:6], rel_action[b, t, 3:6])
+            ori_d = combine_aa_aa(ee_state[b, t, 3:6], rel_action[b, t, 3:6])
             ref[b, t, 3:6] = ori_d
 
     return ref
@@ -57,8 +58,31 @@ def get_delta_rot(desired_ori_aa, current_ori_quat):
     return delta_euler
 
 
+def combine_aa_aa(aa_ori, aa_rot):
+
+    quat_ori = T.axisangle2quat(aa_ori)
+    quat_rot = T.axisangle2quat(aa_rot)
+
+    quat_ori_new = T.quat_multiply(quat_rot, quat_ori)
+
+    aa_ori_new = T.quat2axisangle(quat_ori_new)
+
+    return aa_ori_new
 
 
+def get_delta_rot_aa(desired_ori_aa, current_ori_quat):
+
+    desired_ori_quat = T.axisangle2quat(desired_ori_aa)
+    desired_ori_mat = T.quat2mat(desired_ori_quat)
+
+    current_ori_mat = T.quat2mat(current_ori_quat)
+
+    delta_mat = np.dot(desired_ori_mat, np.linalg.inv(current_ori_mat))
+
+    delta_quat = T.mat2quat(delta_mat)
+    delta_aa = T.quat2axisangle(delta_quat)  # axes?
+
+    return delta_aa
 
 
 
