@@ -7,6 +7,7 @@ from mp_pytorch.mp import MPFactory
 from mp_pytorch.util import add_expand_dim
 # from mode.utils.utils import timeit
 import mode.utils.rotations as rot
+import mode.utils.pose_process as pp
 
 
 def autocast_float32(fn):
@@ -98,14 +99,17 @@ class BSpline(torch.nn.Module):
         #   actions[..., t, :] = actions[..., t, :] + actions[..., t-1, :]
         # absolute2current = action_sequences.cumsum(-2)
         ee_states = kwargs["ee_states"]
-        ref = action_sequences + ee_states
+        # ref = action_sequences + ee_states
 
         # using axis-angle rotation combination
-        for b in range(ref.shape[0]):
-            for t in range(ref.shape[1]):
-                orid = rot.combine_axis_angle_rotations(ee_states[b,t,3:], action_sequences[b, t, 3:6])
-                ref[b, t, 3:6] = orid
+        # for b in range(ref.shape[0]):
+        #     for t in range(ref.shape[1]):
+        #         orid = rot.combine_axis_angle_rotations(ee_states[b,t,3:], action_sequences[b, t, 3:6])
+        #         ref[b, t, 3:6] = orid
 
+        # axis + euler from robosuite
+        ref = pp.rel2abs(action_sequences.cpu().numpy(), ee_states.cpu().numpy())
+        ref = torch.tensor(ref, dtype=self.dtype, device=self.device)
 
         # dictionary
         # para = self.mp.learn_mp_params_from_trajs(times, absolute2current)

@@ -26,6 +26,7 @@ from mode.utils.lang_buffer import AdvancedLangEmbeddingBuffer
 from mode.models.mps.bspline import BSpline
 # from mode.utils.utils import timeit
 import mode.utils.rotations as rot
+import mode.utils.pose_process as pp
 
 logger = logging.getLogger(__name__)
 
@@ -530,13 +531,17 @@ class MoDEMPAgent(pl.LightningModule):
         # mse_loss in trajectory level and parameter level
         actions = dataset_batch["actions"].to(self.device)
         ee_states = dataset_batch["ee_states"].to(self.device)
-        ref = actions[..., :6] + ee_states
-        for b in range(ref.shape[0]):
-            for t in range(ref.shape[1]):
-                orid = rot.combine_axis_angle_rotations(ee_states[b,t,3:], actions[b, t, 3:6])
-                ref[b, t, 3:6] = orid
+        # ref = actions[..., :6] + ee_states
+        # for b in range(ref.shape[0]):
+        #     for t in range(ref.shape[1]):
+        #         orid = rot.combine_axis_angle_rotations(ee_states[b,t,3:], actions[b, t, 3:6])
+        #         ref[b, t, 3:6] = orid
+        # ref = torch.cat([ref, actions[..., -1:]], dim=-1)
+        ref = pp.rel2abs(actions[..., :6].cpu().numpy(), ee_states.cpu().numpy())
+        ref = torch.tensor(ref, device=self.device)
         ref = torch.cat([ref, actions[..., -1:]], dim=-1)
-        update_bounds = self.current_epoch == 0
+        # update_bounds = self.current_epoch == 0
+        update_bounds = True
         para = self.mp.traj_to_params(actions, update_bounds=update_bounds, ee_states=ee_states)
         params = para["params"]
         # pred_loss = torch.nn.functional.mse_loss(action_pred, actions)

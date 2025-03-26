@@ -32,6 +32,7 @@ from mode.evaluation.utils import get_env_state_for_initial_condition, join_vis_
 from mode.rollout.rollout_video import RolloutVideo
 from typing import Any, Dict, Tuple, Union
 import mode.utils.rotations as rot
+import mode.utils.pose_process as pp
 
 log_print = logging.getLogger(__name__)
 
@@ -356,13 +357,18 @@ class RolloutLibero(Callback):
                 current_pos = data["propri"]["ee_pos"]
                 current_ori = data["propri"]["ee_quat"]
 
-                actions[0, :3] -= current_pos
-                # assume libero adta used axis-angle used
-                current_ori = rot.quaternion_to_axis_angle(current_ori)
-                delta_aa = rot.delta_axis_angle(current_ori, actions[0, 3:6])
-                actions[0, 3:6] = delta_aa
+                # actions[0, :3] -= current_pos
+                # # assume libero adta used axis-angle used
+                # current_ori = rot.quaternion_to_axis_angle(current_ori)
+                # delta_aa = rot.delta_axis_angle(current_ori, actions[0, 3:6])
+                # actions[0, 3:6] = delta_aa
+
                 # direct substract used
                 # actions[0, 3:6] -= current_ori
+
+                delta_euler = pp.get_delta_rot(actions[0, 3:6], current_ori)
+                actions[0, :3] -= current_pos
+                actions[0, 3:6] = delta_euler
 
                 obs, reward, done, info = env.step(actions)
 
