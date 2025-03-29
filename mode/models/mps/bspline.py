@@ -23,19 +23,22 @@ def normalize(tensor, min_val, max_val):
     if max_val is None:
         max_val = tensor.max()
 
-    # Normalize the tensor to [0, 1]
+    # Normalize the tensor to [-1, 1]
     assert torch.all(
         tensor >= min_val - 1e-3), "Input tensor has values below min_val"
     assert torch.all(
         tensor <= max_val + 1e-3), "Input tensor has values above max_val"
     normalized_tensor = (tensor - min_val) / (max_val - min_val)
     normalized_tensor = torch.clamp(normalized_tensor, 0, 1)
+    normalized_tensor = 2*normalized_tensor - 1
+
 
     return normalized_tensor
 
 def unnormalize(normalized_tensor, min_val, max_val):
 
-    tensor = normalized_tensor * (max_val - min_val) + min_val
+    normalized_tensor_ =  (normalized_tensor + 1) / 2
+    tensor = normalized_tensor_ * (max_val - min_val) + min_val
     return tensor
 
 
@@ -69,8 +72,8 @@ class BSpline(torch.nn.Module):
 
         # normalizer bounds making the diffuser predicted params in [-1, 1],
         # updated in every batch, should be stablized after 1 epoch training
-        self.register_buffer("w_min", -2.0 * torch.ones((num_dof * num_basis)))
-        self.register_buffer("w_max", 2.0 * torch.ones((num_dof * num_basis)))
+        self.register_buffer("w_min", -1.0 * torch.ones((num_dof * num_basis)))
+        self.register_buffer("w_max", 1.0 * torch.ones((num_dof * num_basis)))
 
     @property
     def device(self):
