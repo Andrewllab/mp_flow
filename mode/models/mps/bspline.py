@@ -6,8 +6,8 @@ from addict import Dict
 from mp_pytorch.mp import MPFactory
 from mp_pytorch.util import add_expand_dim
 # from mode.utils.utils import timeit
-import mode.utils.rotations as rot
-import mode.utils.pose_process as pp
+# import mode.utils.rotations as rot
+# import mode.utils.pose_process as pp
 
 
 def autocast_float32(fn):
@@ -101,7 +101,9 @@ class BSpline(torch.nn.Module):
         # for t in range(1, actions.shape[-2]):
         #   actions[..., t, :] = actions[..., t, :] + actions[..., t-1, :]
         # absolute2current = action_sequences.cumsum(-2)
-        ee_states = kwargs["ee_states"]
+
+        # ee_states = kwargs["ee_states"]
+
         # ref = action_sequences + ee_states
 
         # using axis-angle rotation combination
@@ -111,12 +113,13 @@ class BSpline(torch.nn.Module):
         #         ref[b, t, 3:6] = orid
 
         # axis + euler from robosuite
-        ref = pp.rel2abs(action_sequences.cpu().numpy(), ee_states.cpu().numpy())
-        ref = torch.tensor(ref, dtype=self.dtype, device=self.device)
+        # ref = pp.rel2abs(action_sequences.cpu().numpy(), ee_states.cpu().numpy())
+        # ref = torch.tensor(ref, dtype=self.dtype, device=self.device)
 
         # dictionary
         # para = self.mp.learn_mp_params_from_trajs(times, absolute2current)
-        para = self.mp.learn_mp_params_from_trajs(times, ref)
+        # para = self.mp.learn_mp_params_from_trajs(times, ref)
+        para = self.mp.learn_mp_params_from_trajs(times, action_sequences)
         if update_bounds:
             self.update_weights_bounds_per_batch(para["params"])
 

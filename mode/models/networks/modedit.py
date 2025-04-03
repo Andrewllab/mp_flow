@@ -670,7 +670,8 @@ class MoDeDiT(nn.Module):
         use_shared_expert: bool = False,
         use_noise_token_as_input: bool = True,
         use_custom_attn_mask: bool = False,
-        init_style: str = 'default'
+        init_style: str = 'default',
+        proprio_dim: int =14,
     ):
         super().__init__()
         self.device = device
@@ -681,7 +682,8 @@ class MoDeDiT(nn.Module):
         self.sigma_linear = nn.Linear(embed_dim, embed_dim, bias=False)
         seq_size = goal_seq_len + obs_seq_len - 1 + action_seq_len
         self.tok_emb = nn.Linear(obs_dim, embed_dim, bias=False)
-        self.gripper_embed = nn.Linear(obs_dim, embed_dim, bias=False)
+        # self.proprio_emb = nn.Linear(proprio_dim, embed_dim, bias=False)
+        # self.gripper_embed = nn.Linear(obs_dim, embed_dim, bias=False)
         self.goal_emb = nn.Linear(goal_dim, embed_dim, bias=False)
         self.action_emb = nn.Linear(action_dim, embed_dim, bias=False)
         self.pos_emb = nn.Parameter(torch.zeros(1, seq_size, embed_dim))
@@ -833,16 +835,20 @@ class MoDeDiT(nn.Module):
 
     def process_state_obs(self, state_obs):
         # split into prior and gripper state
-        proprio = state_obs[:, :, :-2]
-        gripper_state = state_obs[:, :, -2:]
+        # proprio = state_obs[:, :, :-2]
+        # gripper_state = state_obs[:, :, -2:]
+        #
+        # # encode proprio
+        # proprio_emb = self.tok_emb(proprio)
+        # gripper_emb = self.gripper_embed(gripper_state)
+        #
+        # combined_embed = self.combine_embed(torch.cat([proprio_emb, gripper_emb], dim=-1))
+        #
+        # return combined_embed
 
-        # encode proprio
-        proprio_emb = self.tok_emb(proprio)
-        gripper_emb = self.gripper_embed(gripper_state)
-
-        combined_embed = self.combine_embed(torch.cat([proprio_emb, gripper_emb], dim=-1))
-
-        return combined_embed
+        # proprio_emb = self.proprio_emb(state_obs)
+        proprio_emb = self.state_embed(state_obs)
+        return proprio_emb
 
     def build_input_seq(self, state_x, action_x, goal_x=None, emb_t=None, proprio_embed=None):
         sequences = []
