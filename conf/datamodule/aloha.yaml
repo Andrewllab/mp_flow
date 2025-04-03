@@ -49,5 +49,5 @@ datasets:
   transforms: ${datamodule.transforms}
   task_description: 'Pick up the cube with the right arm and transfer it to the left arm.'
 #  key: "lang"
-  batch_size: 32
+  batch_size: 64
   num_workers: 12

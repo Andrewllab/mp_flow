@@ -16,7 +16,7 @@ log_dir: /home/temp_store/weiran/aloha_logs
 slurm: false
 seed: 242
 device: 'cuda'
-batch_size: 256 # 38 # 128
+batch_size: 64 # 38 # 128
 devices: 1
 #goal_window_size: 1
 act_dim: 14
@@ -25,11 +25,11 @@ use_proprio: true
 obs_dim: 512
 goal_dim: 512
 obs_seq_len: 1
-act_seq_len: 60
+act_seq_len: 100
 multistep: ${act_seq_len}
 
-max_epochs: 10
-rollout_lh_skip_epochs: 1
+max_epochs: 100
+rollout_lh_skip_epochs: 30
 num_workers: 12
 
 trainer:
@@ -69,3 +69,80 @@ hydra:
           - datamodule.num_workers
           - trainer.limit_train_batches
           - trainer.limit_val_batches
+
+
+
+
+
+#defaults:
+#  - callbacks: aloha
+#  - datamodule: aloha
+#  - model: mode_mp_agent_aloha
+#  - override hydra/job_logging: colorlog
+#  - override hydra/hydra_logging: colorlog
+#
+#
+#repo_id: "lerobot/aloha_sim_transfer_cube_human"
+##id :
+#
+#
+#clip_lang_model_name: ViT-B/32
+#
+#log_dir: /home/hk-project-p0022253/ew5996/ws_data/hkfswork/ew5996-mp_flow/aloha/logs
+#slurm: false
+#seed: 242
+#device: 'cuda'
+#batch_size: 512 # 38 # 128
+#devices: 4
+##goal_window_size: 1
+#act_dim: 14
+#proprio_dims: 14
+#use_proprio: true
+#obs_dim: 512
+#goal_dim: 512
+#obs_seq_len: 1
+#act_seq_len: 120
+#multistep: ${act_seq_len}
+#
+#max_epochs: 10
+#rollout_lh_skip_epochs: 1
+#num_workers: 12
+#
+#trainer:
+#  devices: ${devices}
+#  precision: bf16
+#  max_epochs: ${max_epochs}
+#  sync_batchnorm: False
+#  accelerator: gpu
+#  strategy: "ddp"
+#  limit_train_batches: 1000
+#  limit_val_batches: 4
+#  # gradient_clip_val: 1
+#
+#logger:
+#  _target_: pytorch_lightning.loggers.WandbLogger
+#  save_dir: .
+#  name: logger
+#  group: mode_abs_hdebug
+#  log_model: false
+#  project: aloha
+#  entity: mp_flow
+#  id: ???
+#
+#
+#hydra:
+#  run:
+#    dir: ${log_dir}/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+#  sweep:
+#    dir: ${log_dir}/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+#    subdir: ${hydra.job.override_dirname}
+#  job:
+#    config:
+#      override_dirname:
+#        exclude_keys:
+#          - log_dir
+#          - datamodule.root_data_dir
+#          - trainer.gpus
+#          - datamodule.num_workers
+#          - trainer.limit_train_batches
+#          - trainer.limit_val_batches

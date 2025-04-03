@@ -38,11 +38,11 @@ rollout_lh:
   lang_text: 'Pick up the cube with the right arm and transfer it to the left arm.'
 
   skip_epochs: ${rollout_lh_skip_epochs}
-  rollout_freq: 3
+  rollout_freq: 20
   num_videos: 0
   max_steps: 500
   empty_cache: false
   debug: false
-  n_eval: 10
+  n_eval: 25
   num_procs: 12
   use_mp: false
