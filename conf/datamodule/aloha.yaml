@@ -48,6 +48,24 @@ datasets:
     observations: []
   transforms: ${datamodule.transforms}
   task_description: 'Pick up the cube with the right arm and transfer it to the left arm.'
+#  task_description: 'Insert the peg into the socket.'
 #  key: "lang"
   batch_size: 64
   num_workers: 12
+
+
+
+#datasets:
+#  _target_: mode.datasets.aloha_data_module.AlohaDataset
+#  lebot_dataset_cfg:
+#    repo_id: ${repo_id}
+#    obs_seq_len: ${obs_seq_len}
+#    act_seq_len: ${act_seq_len}
+#    fps: 50
+#    observations: [ ]
+#  transforms: ${datamodule.transforms}
+##  task_description: 'Pick up the cube with the right arm and transfer it to the left arm.'
+#  task_description: 'Insert the peg into the socket.'
+#  #  key: "lang"
+#  batch_size: 512
+#  num_workers: 12

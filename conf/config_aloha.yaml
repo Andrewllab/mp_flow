@@ -12,7 +12,8 @@ repo_id: "lerobot/aloha_sim_transfer_cube_human"
 
 clip_lang_model_name: ViT-B/32
 
-log_dir: /home/temp_store/weiran/aloha_logs
+#log_dir: /home/temp_store/weiran/aloha_logs
+log_dir: /home/weiran/projects/mp_flow/aloha_logs
 slurm: false
 seed: 242
 device: 'cuda'
@@ -28,8 +29,8 @@ obs_seq_len: 1
 act_seq_len: 100
 multistep: ${act_seq_len}
 
-max_epochs: 100
-rollout_lh_skip_epochs: 30
+max_epochs: 5000
+rollout_lh_skip_epochs: 200
 num_workers: 12
 
 trainer:
@@ -46,7 +47,7 @@ logger:
   _target_: pytorch_lightning.loggers.WandbLogger
   save_dir: .
   name: logger
-  group: mode_abs2curr_test
+  group: mode_abs2cur_vrlongrun
   log_model: false
   project: aloha_debug
   entity: mp_flow
@@ -72,8 +73,8 @@ hydra:
 
 
 
-
-
+## transfer
+#
 #defaults:
 #  - callbacks: aloha
 #  - datamodule: aloha
@@ -85,6 +86,7 @@ hydra:
 #repo_id: "lerobot/aloha_sim_transfer_cube_human"
 ##id :
 #
+##repo_id: "lerobot/aloha_sim_insertion_human"
 #
 #clip_lang_model_name: ViT-B/32
 #
@@ -93,7 +95,7 @@ hydra:
 #seed: 242
 #device: 'cuda'
 #batch_size: 512 # 38 # 128
-#devices: 4
+#devices: 1
 ##goal_window_size: 1
 #act_dim: 14
 #proprio_dims: 14
@@ -101,11 +103,12 @@ hydra:
 #obs_dim: 512
 #goal_dim: 512
 #obs_seq_len: 1
-#act_seq_len: 120
+##act_seq_len: 100
+#act_seq_len: 50
 #multistep: ${act_seq_len}
 #
-#max_epochs: 10
-#rollout_lh_skip_epochs: 1
+#max_epochs: 5000
+#rollout_lh_skip_epochs: 400
 #num_workers: 12
 #
 #trainer:
@@ -123,9 +126,85 @@ hydra:
 #  _target_: pytorch_lightning.loggers.WandbLogger
 #  save_dir: .
 #  name: logger
-#  group: mode_abs_hdebug
+#  group: mode_abs
 #  log_model: false
-#  project: aloha
+#  project: aloha_transfer
+##  project: aloha_ins
+#  entity: mp_flow
+#  id: ???
+#
+#
+#hydra:
+#  run:
+#    dir: ${log_dir}/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+#  sweep:
+#    dir: ${log_dir}/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+#    subdir: ${hydra.job.override_dirname}
+#  job:
+#    config:
+#      override_dirname:
+#        exclude_keys:
+#          - log_dir
+#          - datamodule.root_data_dir
+#          - trainer.gpus
+#          - datamodule.num_workers
+#          - trainer.limit_train_batches
+#          - trainer.limit_val_batches
+
+
+
+
+# insert
+
+#defaults:
+#  - callbacks: aloha
+#  - datamodule: aloha
+#  - model: mode_mp_agent_aloha
+#  - override hydra/job_logging: colorlog
+#  - override hydra/hydra_logging: colorlog
+#
+#repo_id: "lerobot/aloha_sim_insertion_human"
+#
+#clip_lang_model_name: ViT-B/32
+#
+#log_dir: /home/hk-project-p0022253/ew5996/ws_data/hkfswork/ew5996-mp_flow/aloha/logs
+#slurm: false
+#seed: 242
+#device: 'cuda'
+#batch_size: 512 # 38 # 128
+#devices: 1
+##goal_window_size: 1
+#act_dim: 14
+#proprio_dims: 14
+#use_proprio: true
+#obs_dim: 512
+#goal_dim: 512
+#obs_seq_len: 1
+#act_seq_len: 50
+#multistep: ${act_seq_len}
+#
+#max_epochs: 100
+#rollout_lh_skip_epochs: 40
+#num_workers: 12
+#
+#trainer:
+#  devices: ${devices}
+#  precision: bf16
+#  max_epochs: ${max_epochs}
+#  sync_batchnorm: False
+#  accelerator: gpu
+#  strategy: "ddp"
+#  limit_train_batches: 1000
+#  limit_val_batches: 4
+#  # gradient_clip_val: 1
+#
+#logger:
+#  _target_: pytorch_lightning.loggers.WandbLogger
+#  save_dir: .
+#  name: logger
+#  group: mode_abs
+#  log_model: false
+#  project: aloha_ins
 #  entity: mp_flow
 #  id: ???
 #
