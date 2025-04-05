@@ -15,9 +15,9 @@ sigma_max: 80
 noise_scheduler: 'exponential'
 sigma_sample_density_type: 'loglogistic' # 'loglogistic' or 'loguniform'
 #ckpt_path: '/path/to/prtrained_weights/'
-#ckpt_path: '/home/weiran/mp_flow/pretrained/d_ema=0'
-#start_from_pretrained: True
-start_from_pretrained: False
+ckpt_path: "/home/weiran/projects/mp_flow/aloha_logs/runs/2025-04-05/00-23-42/seed_242/saved_models/last.ckpt"
+start_from_pretrained: True
+#start_from_pretrained: False
 act_window_size: ${act_seq_len}
 latent_dim: 512
 obs_enc_dim: ${obs_dim}

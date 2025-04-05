@@ -27,6 +27,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+os.environ["MUJOCO_GL"] = "egl"
 
 def clear_cuda_cache():
     """Clear CUDA cache and garbage collect unused memory."""
