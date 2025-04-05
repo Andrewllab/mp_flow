@@ -29,6 +29,14 @@ logger = logging.getLogger(__name__)
 
 os.environ["MUJOCO_GL"] = "egl"
 
+original_torch_load = torch.load
+
+def patched_load(*args, **kwargs):
+    kwargs['weights_only'] = False  # force full unpickling
+    return original_torch_load(*args, **kwargs)
+
+torch.load = patched_load
+
 def clear_cuda_cache():
     """Clear CUDA cache and garbage collect unused memory."""
     if torch.cuda.is_available():
