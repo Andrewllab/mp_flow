@@ -201,11 +201,13 @@ for i in range(n_eval):
         if success:
             print("success")
             successt += 1
+        elif done:
+            print("failure")
 
 
-# print(success/n_eval)
+print(success/n_eval)
 env.close()
-print(successt)
+# print(successt)
 
 
 
