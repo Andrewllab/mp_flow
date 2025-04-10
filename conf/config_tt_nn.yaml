@@ -1,8 +1,8 @@
 defaults:
   - callbacks: tabletennis
   - datamodule: tabletennis
-  - model: mode_mp_agent_tabletennis
-#  - model: mma_tt_nn
+#  - model: mode_mp_agent_tabletennis
+  - model: mma_tt_nn
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
@@ -46,7 +46,7 @@ logger:
   _target_: pytorch_lightning.loggers.WandbLogger
   save_dir: .
   name: logger
-  group: modemp_abs_batchmm
+  group: modemp_abs_nnormalizer
   log_model: false
   project: table_tennis_horeka
   entity: mp_flow
@@ -72,12 +72,13 @@ hydra:
 
 
 
-# horeaka conf
+# horeka conf
+
 #defaults:
 #  - callbacks: tabletennis
 #  - datamodule: tabletennis
-#  - model: mode_mp_agent_tabletennis
-##  - model: mma_tt_nn
+##  - model: mode_mp_agent_tabletennis
+#  - model: mma_tt_nn
 #  - override hydra/job_logging: colorlog
 #  - override hydra/hydra_logging: colorlog
 #
@@ -87,7 +88,7 @@ hydra:
 #
 #clip_lang_model_name: ViT-B/32
 #
-#log_dir: /home/hk-project-p0022253/ew5996/ws_data/hkfswork/ew5996-mp_flow/dataset/table_tennis_log/
+#log_dir: /home/hk-project-p0022253/ew5996/ws_data/hkfswork/ew5996-mp_flow/dataset/table_tennis_log
 #slurm: false
 #seed: 242
 #device: 'cuda'
@@ -121,7 +122,7 @@ hydra:
 #  _target_: pytorch_lightning.loggers.WandbLogger
 #  save_dir: .
 #  name: logger
-#  group: modemp_abs_batchmm
+#  group: modemp_abs_nnormalizer
 #  log_model: false
 #  project: table_tennis_horeka
 #  entity: mp_flow

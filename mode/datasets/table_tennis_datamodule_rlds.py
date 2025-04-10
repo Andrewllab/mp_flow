@@ -39,6 +39,7 @@ class TTDataset(Dataset):
 
     def __init__(self,
                  metadata:str,
+                 root_dir:str,
                  dataset_name:str="table_tennis",
                  action_seq_len:int = 120,
                  obs_seq_len: int = 1,
@@ -48,7 +49,7 @@ class TTDataset(Dataset):
                  **kwargs
                  ):
 
-        ds = tfds.load(dataset_name, split="train", shuffle_files=False)
+        ds = tfds.load(dataset_name, data_dir=root_dir, split="train", shuffle_files=False)
         self._dataset = sorted(tfds.as_numpy(ds), key=lambda ex:ex["episode_metadata"]["episode_id"])
 
         self.action_seq_len = action_seq_len
@@ -87,8 +88,8 @@ class TTDataset(Dataset):
 
         seq_dict = {}
         seq_dict["rgb_obs"] = {}
-        seq_dict["rgb_obs"]["rgb_static"] = torch.from_numpy(episode[index_]["observation"]["left_cam"]).permute(2,0,1)
-        seq_dict["rgb_obs"]["rgb_gripper"] = torch.from_numpy(episode[index_]["observation"]["right_cam"]).permute(2,0,1)
+        seq_dict["rgb_obs"]["rgb_static"] = torch.from_numpy(episode[index_]["observation"]["left_cam"], ).permute(2,0,1) /255.0
+        seq_dict["rgb_obs"]["rgb_gripper"] = torch.from_numpy(episode[index_]["observation"]["right_cam"],).permute(2,0,1) /255.0
 
         seq_dict["robot_obs"] = torch.from_numpy(episode[index_]["observation"]["state"])[None, ...]
 

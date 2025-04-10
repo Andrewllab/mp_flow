@@ -8,7 +8,7 @@ use_proprio: ${use_proprio}
 seed: ${seed}
 sampler_type: 'ddim'
 num_sampling_steps: 10
-sigma_data: 0.5
+sigma_data: 1.0
 sigma_min: 0.001
 sigma_max: 80
 noise_scheduler: 'exponential'
@@ -89,7 +89,7 @@ language_goal:
 
 # added for mp
 mp:
-  _target_: mode.models.mps.bspline.BSpline
+  _target_: mode.models.mps.bspline_norm_cons.BSpline
   _recursive_: false
   num_dof: ${datamodule.action_space}
   num_basis: 10
@@ -97,5 +97,7 @@ mp:
   device: cuda
   seq_len: ${act_seq_len}
   frequency: 100
-  weights_scale: 1.2
+  weights_scale: 1.5
+  w_mean: [1.569110135747114, 0.044067446053318665, 1.2203132701409136, -0.7399718703698172, -0.0241770588148252, -2.7237367599988094]
+  w_sigma: [0.17829138444453754, 0.04674718394616102, 0.09382980700375151, 0.2649905800900882, 0.29717063961370205, 0.33308220572525443]
 #  digit_dims: 1

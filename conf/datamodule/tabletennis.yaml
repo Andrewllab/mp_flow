@@ -11,7 +11,7 @@ shuffle_val: false
 num_workers: ${num_workers}
 split_ratio: 0.0
 
-
+# use self made dataloader local
 #datasets:
 #  _target_: mode.datasets.table_tennis_datamodule.TTDataset
 #  root_data_dir: ${root_data_dir}
@@ -21,11 +21,24 @@ split_ratio: 0.0
 #
 #  batch_size: ${batch_size}
 
+# use tfds local
 datasets:
   _target_: mode.datasets.table_tennis_datamodule_rlds.TTDataset
+  root_dir: "/home/i53/student/wliao/tensorflow_datasets"
   metadata: "/home/temp_store/weiran/table_tennis/info.npz"
   action_seq_len: ${act_seq_len}
   transforms: ${datamodule.transforms}
   task_description: "hit the coming ball to the opposite table"
 
   batch_size: ${batch_size}
+
+# use tfds horeka
+#datasets:
+#  _target_: mode.datasets.table_tennis_datamodule_rlds.TTDataset
+#  root_dir: "/home/hk-project-p0022253/ew5996/ws_data/hkfswork/ew5996-mp_flow/dataset/tfds"
+#  metadata: "/home/hk-project-p0022253/ew5996/ws_data/hkfswork/ew5996-mp_flow/dataset/tfds/table_tennis_meta/info.npz"
+#  action_seq_len: ${act_seq_len}
+#  transforms: ${datamodule.transforms}
+#  task_description: "hit the coming ball to the opposite table"
+#
+#  batch_size: ${batch_size}

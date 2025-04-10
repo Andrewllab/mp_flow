@@ -3,7 +3,7 @@ train:
     # - _target_: torchvision.transforms.ToTensor
 #    - _target_: mode.utils.transforms.RandomShiftsAug
 #      pad: 10
-    - _target_: mode.utils.transforms.ScaleImageTensor
+#    - _target_: mode.utils.transforms.ScaleImageTensor
     - _target_: torchvision.transforms.Normalize
       mean: [0.48145466, 0.4578275, 0.40821073]
       std: [0.26862954, 0.26130258, 0.27577711]
@@ -11,7 +11,7 @@ train:
     # - _target_: torchvision.transforms.ToTensor
 #    - _target_: mode.utils.transforms.RandomShiftsAug
 #      pad: 10
-    - _target_: mode.utils.transforms.ScaleImageTensor
+#    - _target_: mode.utils.transforms.ScaleImageTensor
     - _target_: torchvision.transforms.Normalize
       mean: [0.48145466, 0.4578275, 0.40821073]
       std: [0.26862954, 0.26130258, 0.27577711]
@@ -19,13 +19,13 @@ train:
 val:
   rgb_static:
     # - _target_: torchvision.transforms.ToTensor
-    - _target_: mode.utils.transforms.ScaleImageTensor
+#    - _target_: mode.utils.transforms.ScaleImageTensor
     - _target_: torchvision.transforms.Normalize
       mean: [ 0.48145466, 0.4578275, 0.40821073 ]
       std: [ 0.26862954, 0.26130258, 0.27577711 ]
   rgb_gripper:
     # - _target_: torchvision.transforms.ToTensor
-    - _target_: mode.utils.transforms.ScaleImageTensor
+#    - _target_: mode.utils.transforms.ScaleImageTensor
     - _target_: torchvision.transforms.Normalize
       mean: [ 0.48145466, 0.4578275, 0.40821073 ]
       std: [ 0.26862954, 0.26130258, 0.27577711 ]
